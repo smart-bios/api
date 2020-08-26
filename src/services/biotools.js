@@ -38,6 +38,18 @@ function tsv2JsonNoHead(tsv, headers){
     })
 }
 
+function tsv2Json(tsv){
+    let lines = tsv.split('\n');
+    let headers = lines.shift().split('\t');
+    return lines.map(line => {
+        let data = line.split('\t');
+        return headers.reduce((obj, nextKey, index) => {
+            obj[nextKey] = data[index];
+            return obj;
+        }, {});
+    })
+}
+
 function getPaths(user, project_name){
     let user_dir = path.join(__dirname, `../../storage/${user}`)
     let project_dir =  `${user_dir}/${project_name}`
@@ -54,7 +66,7 @@ export default {
     | Blast
     |--------------------------------------------------------------------------
     */
-   blast: (input, cb) => {
+    blast: (input, cb) => {
         
         let database = path.join(databasesRoot, input.database)
         console.log(`Database: ${database}`)
@@ -82,7 +94,30 @@ export default {
         });
 
     },
-
+    /*
+    |--------------------------------------------------------------------------
+    | in silico PCR
+    |--------------------------------------------------------------------------
+    */
+    in_silico_pcr: (input, cb) => {
+        let pcr = '';
+        let amplicon = '';
+        const cmd = spawn('in_silico_PCR.pl', ['-s', `${input.input}` ,'-a',`${input.forward}`,'-b',`${input.reverse}`]);
+        cmd.stdout.on('data', (data) => {
+            //console.log(data.toString())
+            pcr += data.toString();
+        })
+        cmd.stderr.on('data', (data) => {
+            //console.log(data.toString())
+            amplicon += data.toString();
+        })
+    
+        cmd.on('close', (code) => {
+            console.log(`insilico_pcr process exited with code ${code}`);
+            let result = tsv2Json(pcr)
+            return cb(null, result, amplicon)
+        })
+    },
 
 
     /*
@@ -90,7 +125,7 @@ export default {
     | Fastqc
     |--------------------------------------------------------------------------
     */
-   fastqc: (input, cb) => {
+    fastqc: (input, cb) => {
        let url = getPaths(input.user, input.name)
        let fq =  path.join(__dirname, `../../${input.fq}`)
        let output = path.join(url.user_dir, 'fastqc')

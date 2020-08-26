@@ -37,6 +37,39 @@ ruta.post('/blast', (req, res) =>{
         });        
     }    
 });
+/*
+|--------------------------------------------------------------------------
+| In silico PCR
+|--------------------------------------------------------------------------
+*/
+
+ruta.post('/in_silico_pcr', (req, res) => {
+
+    let params = {
+        input: `/srv/ftp/Pseudomonas/${req.body.seq}/${req.body.seq}${req.body.target}`,
+        forward: req.body.forward,
+        reverse: req.body.reverse
+    }
+
+    try {
+        tools.in_silico_pcr(params, function(err, result, amplicons){
+            if(err){
+                return res.json({error: err});
+            }
+            res.json({
+                status: 'success',
+                result,
+                amplicons
+            }) 
+         })
+        
+    } catch (error) {
+        res.status(500).json({
+            status: 'failed',
+            error
+        });    
+    }
+})
 
 
 
