@@ -39,7 +39,6 @@ ruta.post('/upload', (req, res) => {
         description: req.body.description,
         category: req.body.category
     }
-
     sampleFile.mv(upload.path, function(err) {
         if (err){
             return res.status(500).json({
@@ -88,10 +87,10 @@ ruta.get("/list/:id", async(req, res) =>{
 */
 ruta.post("/list", async(req, res) =>{
     try {
-        let result = await Storage.find({user: req.body.user, category: req.body.category})
+        let result = await Storage.find({user: req.body.user, type: req.body.type})
         res.json({
             status: 'success',
-            result
+            files: result
         })
     } catch (error) {
         res.json({

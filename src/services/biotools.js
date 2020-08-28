@@ -126,10 +126,10 @@ export default {
     |--------------------------------------------------------------------------
     */
     fastqc: (input, cb) => {
-       let url = getPaths(input.user, input.name)
-       let fq =  path.join(__dirname, `../../${input.fq}`)
-       let output = path.join(url.user_dir, 'fastqc')
-       let basemame = path.basename(input.fq, '.fastq.gz');
+        let url = getPaths(input.user, input.name)
+        let fq =  path.join(__dirname, `../../${input.fq}`)
+        let output = path.join(url.user_dir, 'fastqc')
+        let basemame = path.basename(input.fq, '.fastq.gz');
        
        const cmd_fastqc = spawn('fastqc',['-t', 2, '-o', output, '--extract', fq])
        cmd_fastqc.stderr.on('data', (data) => {console.log(data.toString())});
