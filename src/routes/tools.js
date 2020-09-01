@@ -111,52 +111,16 @@ ruta.post('/fastqc', async(req, res) => {
 ruta.post('/trimgalore', async(req, res) => {
 
     try {
-        console.log(req.body)
         tools.trimgalore(req.body, function(err, result){
-            let trim = ''
-
             if(err){
                 res.json({ status: 'failed', message: 'Trim Galore failed',err})
             }
+            
             res.json({
                 status: 'success',
                 message: 'Trim Galore complete',
                 result
-            })
-            /* if(req.body.paired){
-                trim = [result.trim1, result.trim2]
-                storage.insertMany(trim, function(err, data){
-                    if(err){
-                        res.json({ status: 'failed', message: 'Trim Galore failed',err})
-                    }
-                    console.log(data)
-    
-                    res.json({
-                        status: 'success',
-                        message: 'Trim Galore complete',
-                        trim1: data[0]._id,
-                        trim2: data[1]._id
-                    })
-                })
-            }else{
-                trim = result
-                storage.create(trim, function(err, data){
-                    if(err){
-                        res.json({ status: 'failed', message: 'Trim Galore failed',err})
-                    }
-                    console.log(data)
-    
-                    res.json({
-                        status: 'success',
-                        message: 'Trim Galore complete',
-                        trim1: data[0]._id,
-                        trim2: data[1]._id
-                    })
-                })
-            } */
-
-            
-            
+            })    
         })
     } catch (error) {
         res.status(500).json({
