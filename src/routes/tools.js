@@ -1,6 +1,7 @@
 
 import { Router } from 'express'; 
 import tools from '../services/biotools';
+import storage from '../models/storage';
 
 const ruta = Router();
 
@@ -37,6 +38,7 @@ ruta.post('/blast', (req, res) =>{
         });        
     }    
 });
+
 /*
 |--------------------------------------------------------------------------
 | In silico PCR
@@ -69,10 +71,7 @@ ruta.post('/in_silico_pcr', (req, res) => {
             error
         });    
     }
-})
-
-
-
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -102,6 +101,70 @@ ruta.post('/fastqc', async(req, res) => {
             error
         }); 
     }
+});
+
+/*
+|--------------------------------------------------------------------------
+| trim galore
+|--------------------------------------------------------------------------
+*/
+ruta.post('/trimgalore', async(req, res) => {
+
+    try {
+        console.log(req.body)
+        tools.trimgalore(req.body, function(err, result){
+            let trim = ''
+
+            if(err){
+                res.json({ status: 'failed', message: 'Trim Galore failed',err})
+            }
+            res.json({
+                status: 'success',
+                message: 'Trim Galore complete',
+                result
+            })
+            /* if(req.body.paired){
+                trim = [result.trim1, result.trim2]
+                storage.insertMany(trim, function(err, data){
+                    if(err){
+                        res.json({ status: 'failed', message: 'Trim Galore failed',err})
+                    }
+                    console.log(data)
+    
+                    res.json({
+                        status: 'success',
+                        message: 'Trim Galore complete',
+                        trim1: data[0]._id,
+                        trim2: data[1]._id
+                    })
+                })
+            }else{
+                trim = result
+                storage.create(trim, function(err, data){
+                    if(err){
+                        res.json({ status: 'failed', message: 'Trim Galore failed',err})
+                    }
+                    console.log(data)
+    
+                    res.json({
+                        status: 'success',
+                        message: 'Trim Galore complete',
+                        trim1: data[0]._id,
+                        trim2: data[1]._id
+                    })
+                })
+            } */
+
+            
+            
+        })
+    } catch (error) {
+        res.status(500).json({
+            status: 'failed',
+            error
+        })
+    }
 })
+
 
 export default ruta

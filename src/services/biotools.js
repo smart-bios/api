@@ -52,7 +52,7 @@ function tsv2Json(tsv){
 
 function getPaths(user, project_name){
     let user_dir = path.join(__dirname, `../../storage/${user}`)
-    let project_dir =  `${user_dir}/${project_name}`
+    let project_dir =  `${user_dir}/tmp/${project_name}`
     let paths = {
         user_dir,
         project_dir,
@@ -104,11 +104,9 @@ export default {
         let amplicon = '';
         const cmd = spawn('in_silico_PCR.pl', ['-s', `${input.input}` ,'-a',`${input.forward}`,'-b',`${input.reverse}`]);
         cmd.stdout.on('data', (data) => {
-            //console.log(data.toString())
             pcr += data.toString();
         })
         cmd.stderr.on('data', (data) => {
-            //console.log(data.toString())
             amplicon += data.toString();
         })
     
@@ -126,15 +124,17 @@ export default {
     |--------------------------------------------------------------------------
     */
     fastqc: (input, cb) => {
-        let url = getPaths(input.user, input.name)
-        let fq =  path.join(__dirname, `../../${input.fq}`)
-        let output = path.join(url.user_dir, 'fastqc')
+        let url = getPaths(input.user, input.name);
+
+        let fq =  path.join(__dirname, `../../${input.fq}`);
+        let output = url.user_dir;
         let basemame = path.basename(input.fq, '.fastq.gz');
        
-       const cmd_fastqc = spawn('fastqc',['-t', 2, '-o', output, '--extract', fq])
-       cmd_fastqc.stderr.on('data', (data) => {console.log(data.toString())});
+        const cmd_fastqc = spawn('fastqc',['-t', 2, '-o', output, '--extract', fq])
+
+        cmd_fastqc.stderr.on('data', (data) => {console.log(data.toString())});
        
-       cmd_fastqc.on('close', (code) => {
+        cmd_fastqc.on('close', (code) => {
            console.log(`fastqc process exited with code ${code}`);
             if(code == 0){
                 let basic = parseFastqData(`${output}/${basemame}_fastqc/fastqc_data.txt`)
@@ -149,4 +149,67 @@ export default {
             }            
         })
     },
+
+    /*
+    |--------------------------------------------------------------------------
+    | Trin Galore
+    |--------------------------------------------------------------------------
+    */
+
+    trimgalore: (input, cb) => {
+
+        let url = getPaths(input.user, input.name)
+        let cmd_trim = ''
+        
+        if(input.paired){
+            let fq1 =  path.join(__dirname, `../../${input.fq1}`)
+            let fq2 =  path.join(__dirname, `../../${input.fq2}`)
+            cmd_trim = spawn('trim_galore',['-q', input.quality, '--length', input.length, '-o', url.project_dir, '--core', threads, '--basename',input.name,'--paired', fq1, fq2])
+
+        }else{
+            let fq1 =  path.join(__dirname, `../../${input.fq1}`)
+            cmd_trim = spawn('trim_galore',['-q', input.quality, '--length', input.length, '-o', url.project_dir, '--core', threads, '--basename', input.name, fq1])
+   
+        }
+
+        //cmd_trim.stdout.on('data', (data) => {console.log(data.toString())});
+        cmd_trim.stderr.on('data', (data) => {console.log(data.toString())});
+        cmd_trim.on('close', (code) => {
+            console.log(`trim_galore process exited with code ${code}`);
+            if( code == 0){
+                if(input.paired){
+                    let trim1 = {
+                        user: input.user,
+                        filename: `${input.name}_val_1.fq.gz`,
+                        description: 'Trin Galore result',
+                        path: `storage/${input.user}/${input.name}/${input.name}_val_1.fq.gz`,
+                        category: 'fastq'
+                    }
+                    let trim2 = {
+                        user: input.user,
+                        filename: `${input.name}_val_2.fq.gz`,    
+                        description: 'Trin Galore result',
+                        path: `storage/${input.user}/${input.name}/${input.name}_val_2.fq.gz`,
+                        category: 'fastq'
+                    }
+                    return cb(null, {trim1, trim2})
+                }else{
+                    let trim1 = {
+                        user: input.user,
+                        filename: `${input.name}_trimmed.fq.gz`,
+                        description: 'Trin Galore result',
+                        path: `storage/${input.user}/${input.name}/${input.name}_trimmed.fq.gz`,
+                        category: 'fastq'
+
+                    }
+                    return cb(null, trim1)
+                }
+               
+            }
+            return cb('error trim galore', null)
+        })
+        
+
+       
+    }
 }

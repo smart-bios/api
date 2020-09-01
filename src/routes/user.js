@@ -24,7 +24,7 @@ ruta.post('/add', auth.verifyAdministrador, async(req, res) => {
 
             body.password = await bcrypt.hash(body.password, 10);
             let new_user = await User.create(body);
-            fs.mkdir(path.join(__dirname, `../../storage/${new_user._id}/fastqc`), { recursive: true }, (err) => { 
+            fs.mkdir(path.join(__dirname, `../../storage/${new_user._id}/tmp`), { recursive: true }, (err) => { 
                 if (err) { 
                     res.status(500).json({
                         status: 'failed',
