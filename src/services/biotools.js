@@ -135,11 +135,14 @@ export default {
         cmd_fastqc.on('close', (code) => {
            console.log(`fastqc process exited with code ${code}`);
             if(code == 0){
-                let basic = parseFastqData(`${output}/${basemame}_fastqc/fastqc_data.txt`)
+                let basic   = parseFastqData(`${output}/${basemame}_fastqc/fastqc_data.txt`)
                 let summary = parseSummary(`${output}/${basemame}_fastqc/summary.txt`)
+                let report  = `/storage/${input.user}/tmp/${basemame}_fastqc.zip`
+
                 return cb(null, {
                     basic,
-                    summary
+                    summary,
+                    report
                 })
 
             }else{

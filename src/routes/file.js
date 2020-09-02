@@ -136,12 +136,8 @@ ruta.get('/download/:id', async(req, res) => {
     let _id = req.params.id
     Storage.findOne({_id}, function(err, file){
         if(err){
-            res.status(406).json({
-                status: 'failed',
-                err
-            });
+            res.status(406).json({status: 'failed',err});
         } 
-
         res.setHeader('Content-Disposition', 'attachment');
         res.header("Cache-Control", "no-cache, no-store, must-revalidate");
         res.header("Pragma", "no-cache");
@@ -160,6 +156,26 @@ ruta.get('/download/:id', async(req, res) => {
 
         });    
     })
+})
+
+ruta.post('/download', (req, res) => {
+
+    let file_path = path.join(__dirname, `../../${req.body.report}`)
+    let basename = path.basename(file_path)
+    res.setHeader('Content-type', 'application/zip');
+    res.header("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.header("Pragma", "no-cache");
+    res.header("Expires", 0);
+
+    res.download(file_path, basename, (err)=>{
+        if(err){
+            res.status(406).json({
+                status: 'failed',
+                err
+            });
+        }
+        console.log('Your file has been downloaded!')
+    }); 
 })
 
 export default ruta
