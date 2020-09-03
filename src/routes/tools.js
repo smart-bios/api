@@ -119,7 +119,18 @@ ruta.post('/trimgalore', async(req, res) => {
             res.json({
                 status: 'success',
                 message: 'Trim Galore complete',
-                result
+                fq1 : {
+                    filename: result.trim1.filename,
+                    path: result.trim1.path,
+                    path_report: result.trim1.report,
+                    report: result.reportfq1
+                },
+                fq2 : {
+                    filename: result.trim2.filename,
+                    path: result.trim2.path,
+                    path_report: result.trim2.report,
+                    report: result.reportfq2
+                }
             })    
         })
     } catch (error) {

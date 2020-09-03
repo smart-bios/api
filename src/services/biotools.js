@@ -126,31 +126,29 @@ export default {
 
                 let reportfq1 = parse.parseTrimGalore(`${output}/${basename1}_trimming_report.txt`)
                 
-
                 let trim1 = {
                     user: input.user,
                     filename: `${input.name}_val_1.fq.gz`,
                     description: 'Trin Galore result',
                     path: `storage/${input.user}/tmp/trim_galore/${input.name}_val_1.fq.gz`,
-                    category: 'fastq'
-                }
-                let trim2 = {
-                    user: input.user,
-                    filename: `${input.name}_val_2.fq.gz`,    
-                    description: 'Trin Galore result',
-                    path: `storage/${input.user}/tmp/trim_galore/${input.name}_val_2.fq.gz`,
-                    category: 'fastq'
+                    category: 'fastq',
+                    report: `/storage/${input.user}/tmp/trim_galore/${basename1}_trimming_report.txt`
                 }
 
                 if(input.paired){
+                    let trim2 = {
+                        user: input.user,
+                        filename: `${input.name}_val_2.fq.gz`,    
+                        description: 'Trin Galore result',
+                        path: `storage/${input.user}/tmp/trim_galore/${input.name}_val_2.fq.gz`,
+                        category: 'fastq',
+                        report: `/storage/${input.user}/tmp/trim_galore/${basename2}_trimming_report.txt`
+                    }
                     let reportfq2 = parse.parseTrimGalore(`${output}/${basename2}_trimming_report.txt`)
-                    console.log(reportfq1)
-                    console.log(reportfq2)
-                    return cb(null, {trim1, trim2})
+                    return cb(null, {trim1, trim2, reportfq1, reportfq2})
                 }else{
                     trim1.path = `storage/${input.user}/${input.name}/${input.name}_trimmed.fq.gz`
-                    console.log(reportfq1)
-                    return cb(null, trim1)
+                    return cb(null, {trim1, reportfq1})
                 }
             }
             return cb('error trim galore', null)
