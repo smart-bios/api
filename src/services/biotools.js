@@ -147,7 +147,8 @@ export default {
                     let reportfq2 = parse.parseTrimGalore(`${output}/${basename2}_trimming_report.txt`)
                     return cb(null, {trim1, trim2, reportfq1, reportfq2})
                 }else{
-                    trim1.path = `storage/${input.user}/${input.name}/${input.name}_trimmed.fq.gz`
+                    trim1.filename = `${input.name}_trimmed.fq.gz`, 
+                    trim1.path = `storage/${input.user}/tmp/trim_galore/${input.name}_trimmed.fq.gz`
                     return cb(null, {trim1, reportfq1})
                 }
             }

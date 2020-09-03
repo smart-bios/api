@@ -115,23 +115,50 @@ ruta.post('/trimgalore', async(req, res) => {
             if(err){
                 res.json({ status: 'failed', message: 'Trim Galore failed', err})
             }
-            
-            res.json({
-                status: 'success',
-                message: 'Trim Galore complete',
-                fq1 : {
-                    filename: result.trim1.filename,
-                    path: result.trim1.path,
-                    path_report: result.trim1.report,
-                    report: result.reportfq1
-                },
-                fq2 : {
-                    filename: result.trim2.filename,
-                    path: result.trim2.path,
-                    path_report: result.trim2.report,
-                    report: result.reportfq2
+
+            let trim_reads = []
+            req.body.paired ? trim_reads = [result.trim1, result.trim2] : trim_reads = [result.trim1] 
+            storage.insertMany(trim_reads, function(err, data){
+                if(err){
+                    res.json({
+                        status: 'failed',
+                        message: 'Trim Galore failed',
+                        error: err
+                    })
                 }
-            })    
+                if(req.body.paired){
+                    res.json({
+                        status: 'success',
+                        message: 'Trim Galore complete',
+                        fq1 : {
+                            filename: result.trim1.filename,
+                            path: result.trim1.path,
+                            path_report: result.trim1.report,
+                            report: result.reportfq1
+                        },
+                        fq2 : {
+                            filename: result.trim2.filename,
+                            path: result.trim2.path,
+                            path_report: result.trim2.report,
+                            report: result.reportfq2
+                        }
+                    }) 
+                }else{
+                    res.json({
+                        status: 'success',
+                        message: 'Trim Galore complete',
+                        fq1 : {
+                            filename: result.trim1.filename,
+                            path: result.trim1.path,
+                            path_report: result.trim1.report,
+                            report: result.reportfq1
+                        },
+                        fq2: ''
+                    }) 
+                }
+                
+            })
+               
         })
     } catch (error) {
         res.status(500).json({
