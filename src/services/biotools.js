@@ -2,63 +2,13 @@ import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import os from 'os'
+import parse from './parse'
 
 const home = os.homedir()
 const databasesRoot = path.join(home,'databases');
 const threads = 4
 
-function parseSummary(summary){
-    let data = fs.readFileSync(summary,'utf8')
-    let headers = ['status','module','library']
-    let sumary = tsv2JsonNoHead(data, headers)
-    return sumary.splice(1)
-}
 
-function parseFastqData(fastqc_data){
-    let data = fs.readFileSync(fastqc_data,'utf8')
-    let lines = data.split('\n')
-    let headers = ['measure','value']
-    let statistics = lines.slice(3,10)
-    return statistics.map(line => {
-        let data = line.split('\t');
-        return headers.reduce((obj, nextKey, index) => {
-            obj[nextKey] = data[index];
-            return obj;
-        }, {});
-    })
-}
-function tsv2JsonNoHead(tsv, headers){
-    let lines = tsv.split('\n');
-    return lines.map(line => {
-        let data = line.split('\t');
-        return headers.reduce((obj, nextKey, index) => {
-            obj[nextKey] = data[index];
-            return obj;
-        }, {});
-    })
-}
-
-function tsv2Json(tsv){
-    let lines = tsv.split('\n');
-    let headers = lines.shift().split('\t');
-    return lines.map(line => {
-        let data = line.split('\t');
-        return headers.reduce((obj, nextKey, index) => {
-            obj[nextKey] = data[index];
-            return obj;
-        }, {});
-    })
-}
-
-function getPaths(user, project_name){
-    let user_dir = path.join(__dirname, `../../storage/${user}`)
-    let project_dir =  `${user_dir}/tmp/${project_name}`
-    let paths = {
-        user_dir,
-        project_dir,
-    }
-    return  paths
-}
 export default {
 
     /*
@@ -88,7 +38,7 @@ export default {
         
         blastcmd.on('close', (code) => {
             console.log(`blastcmd process exited with code ${code}`);
-            let result_obj = tsv2JsonNoHead(result, headers)
+            let result_obj = parse.tsv2JsonNoHead(result, headers)
             return cb(null, result_obj);
         });
 
@@ -111,7 +61,7 @@ export default {
     
         cmd.on('close', (code) => {
             console.log(`insilico_pcr process exited with code ${code}`);
-            let result = tsv2Json(pcr)
+            let result = parse.tsv2Json(pcr)
             return cb(null, result, amplicon)
         })
     },
@@ -135,8 +85,8 @@ export default {
         cmd_fastqc.on('close', (code) => {
            console.log(`fastqc process exited with code ${code}`);
             if(code == 0){
-                let basic   = parseFastqData(`${output}/${basemame}_fastqc/fastqc_data.txt`)
-                let summary = parseSummary(`${output}/${basemame}_fastqc/summary.txt`)
+                let basic   = parse.parseFastqData(`${output}/${basemame}_fastqc/fastqc_data.txt`)
+                let summary = parse.parseSummary(`${output}/${basemame}_fastqc/summary.txt`)
                 let report  = `/storage/${input.user}/tmp/${basemame}_fastqc.zip`
 
                 return cb(null, {
@@ -160,6 +110,8 @@ export default {
     trimgalore: (input, cb) => {
         let fq1 = path.join(__dirname, `../../${input.fq1}`)
         let fq2 = path.join(__dirname, `../../${input.fq2}`)
+        let basename1 = path.basename(fq1)
+        let basename2 = path.basename(fq2)
         let output = path.join(__dirname, `../../storage/${input.user}/tmp/trim_galore`);
         let parametros = ['-q', input.quality, '--length', input.length, '-o', output, '--core', threads, '--basename', input.name]
         
@@ -171,6 +123,9 @@ export default {
         cmd_trim.on('close', (code) => {
             console.log(`trim_galore process exited with code ${code}`);
             if(code == 0){
+
+                let reportfq1 = parse.parseTrimGalore(`${output}/${basename1}_trimming_report.txt`)
+                
 
                 let trim1 = {
                     user: input.user,
@@ -188,9 +143,13 @@ export default {
                 }
 
                 if(input.paired){
+                    let reportfq2 = parse.parseTrimGalore(`${output}/${basename2}_trimming_report.txt`)
+                    console.log(reportfq1)
+                    console.log(reportfq2)
                     return cb(null, {trim1, trim2})
                 }else{
                     trim1.path = `storage/${input.user}/${input.name}/${input.name}_trimmed.fq.gz`
+                    console.log(reportfq1)
                     return cb(null, trim1)
                 }
             }

@@ -113,7 +113,7 @@ ruta.post('/trimgalore', async(req, res) => {
     try {
         tools.trimgalore(req.body, function(err, result){
             if(err){
-                res.json({ status: 'failed', message: 'Trim Galore failed',err})
+                res.json({ status: 'failed', message: 'Trim Galore failed', err})
             }
             
             res.json({
