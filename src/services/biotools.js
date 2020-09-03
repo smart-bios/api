@@ -1,6 +1,6 @@
 import { spawn } from 'child_process';
-import fs from 'fs';
 import path from 'path';
+import compress from 'zip-a-folder'
 import os from 'os'
 import parse from './parse'
 
@@ -154,5 +154,41 @@ export default {
             }
             return cb('error trim galore', null)
         })       
-    }
+    },
+
+    /*
+    |--------------------------------------------------------------------------
+    | Unicycler - Ensamblaje de de novo para bacterias
+    |--------------------------------------------------------------------------
+    */
+    unicycler: (input, cb) =>{
+        let fq1 =  path.join(__dirname, `../../${input.fq1}`)
+        let fq2 =  path.join(__dirname, `../../${input.fq2}`)
+        let length = input.length_fasta
+        let output = path.join(__dirname, `../../storage/${input.user}/tmp/${input.name}`)
+        let zip = `${output}.zip`
+
+        const cmd_unicycler = spawn('unicycler',['-1', fq1, '-2', fq2, '--min_fasta_length', length, '-t', threads,'-o', output,'--spades_path', '/opt/biotools/SPAdes-3.13.0-Linux/bin/spades.py'])
+
+        cmd_unicycler.on('close', (code) => {
+            console.log(`unicycler process exited with code ${code}`);
+            if(code == 0){
+                compress.zipFolder(output, zip, function(err){
+                    if(err){
+                        return cb(err, null)
+                    }
+                    let result = {
+                        user: `${input.user}`,
+                        filename: `${input.name}.zip`,
+                        path: `storage/${input.user}/tmp/${input.name}.zip`,
+                        description: `Unicyclet result`,
+                        type: 'result'
+                    }
+                    return cb(null, result)
+                })
+            }else{
+                    return cb(err, null)
+            }            
+        })
+    },
 }

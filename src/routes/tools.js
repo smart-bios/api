@@ -168,5 +168,40 @@ ruta.post('/trimgalore', async(req, res) => {
     }
 })
 
+/*
+|--------------------------------------------------------------------------
+| Unicycle
+|--------------------------------------------------------------------------
+*/
+
+ruta.post('/unicycler', async(req, res)=> {
+    try {
+        tools.unicycler(req.body, function(err, result){
+            if(err){
+                res.json({ status: 'failed',message: 'Assembly failed',error: err})
+            }
+            storage.create(result, function(err, file){
+                if(err){
+                    res.json({
+                        status: 'failed',
+                        message: 'Assembly failed',
+                        error: err
+                    })
+                }
+                res.json({
+                    status: 'success',
+                    message: 'Unicycler assembly complete ',
+                    result: file._id
+                })
+            })
+        })
+    } catch (error) {
+        res.status(500).json({
+            status: 'failed',
+            error
+        });  
+    }
+})
+
 
 export default ruta
