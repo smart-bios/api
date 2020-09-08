@@ -203,5 +203,31 @@ ruta.post('/unicycler', async(req, res)=> {
     }
 })
 
+/*
+|--------------------------------------------------------------------------
+| PERF
+|--------------------------------------------------------------------------
+*/
+ruta.post('/perf', async(req, res) => {
+    try {
+        tools.perf(req.body, function(err, result){
+            if(err){
+                res.json({ status: 'failed',message: 'PERF failed',error: err})
+            }
+            
+            res.json({
+                status: 'Success',
+                message: 'PERF complete',
+                result
+            })
+        })
+    } catch (error) {
+        res.status(500).json({
+            status: 'failed',
+            error
+        });
+    }
+})
+
 
 export default ruta

@@ -191,4 +191,34 @@ export default {
             }            
         })
     },
+
+    /*
+    |--------------------------------------------------------------------------
+    |PERF
+    |--------------------------------------------------------------------------
+    */
+    perf: (input, cb) =>{
+        let fasta =  path.join(__dirname, `../../${input.fasta}`)
+        let minimum = input.minimum
+        let maximum = input.maximum
+        let length = input.length
+        let file_name = path.basename(fasta).split('.');
+        let tsv = path.join(__dirname, `../../storage/${input.user}/${file_name[0]}_perf.tsv`)
+
+        const cmd_perf = spawn('PERF', ['-i', fasta, '-m', minimum, '-M', maximum, '-l', length, '-a', '-t', 2])
+        cmd_perf.stdout.on('data', (data) => {console.log(data.toString())});
+        
+        cmd_perf.on('close', (code)=> {
+            console.log(`PERF process exited with code ${code}`);
+            let report = parse.parsePerf(tsv)
+            return cb(null, {
+                html: `storage/${input.user}/${file_name[0]}_perf.html`,
+                tsv: `storage/${input.user}/${file_name[0]}_perf.tsv`,
+                report
+            })
+        })
+
+    },
+
+
 }

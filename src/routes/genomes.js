@@ -48,22 +48,25 @@ ruta.get('/list', async(req,res)=> {
     }
 });
 
-ruta.get('/ref', async(req,res)=> {
+/*
+|--------------------------------------------------------------------------
+| Listar referencias
+|--------------------------------------------------------------------------
+*/
+ruta.get('/ref', async(req, res)=> {
     try {
-        const refs = await Ref.find({})
-        //.populate("aislamiento",{codigo: 1}) 
-            res.json({
-                refs,
-                status: "success"
-            })
-       } catch (error) {
+        const ref = await Ref.find({})
+        res.json({
+            ref,
+            status: "success"
+        })
+    } catch (error) {
         res.status(500).json({
             status: "failed",
             message: `Error list references`
         })      
     }
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -109,6 +112,7 @@ ruta.get('/:id', async(req, res)=> {
         
     }
 });
+
 
 
 

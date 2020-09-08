@@ -2,10 +2,13 @@ import {Schema , model} from 'mongoose';
 
 const referenceSchema = new Schema ({
 
-    ref: {
+    name: {
         type: String
     },
-    taxonomy: {
+    kingdom: {
+        type: String
+    },
+    ncbi: {
         type: String
     },
     path: {
@@ -18,6 +21,6 @@ const referenceSchema = new Schema ({
     timestamps: true
 });
 
-const Reference = model('Referencia',referenceSchema);
+const Reference = model('Reference', referenceSchema);
 
 export default Reference;

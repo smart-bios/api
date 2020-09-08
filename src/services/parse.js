@@ -61,6 +61,19 @@ export default {
         return summary
     },
 
+    parsePerf: (report) => {
+        let data = fs.readFileSync(report,'utf8')
+        let headers = ['Chromosome','Repeat Start','Repeat Stop', 'Repeat Class', 'Repeat Length', 'Repeat Strand', 'Motif Number', 'Actual Repeat']
+        let lines = data.split('\n');
+        return lines.map(line => {
+            let data = line.split('\t');
+            return headers.reduce((obj, nextKey, index) => {
+                obj[nextKey] = data[index];
+                return obj;
+            }, {});
+        })
+    }
+
     
     
 
