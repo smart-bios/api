@@ -183,7 +183,7 @@ ruta.post('/unicycler', async(req, res)=> {
             if(err){
                 res.json({ status: 'failed',message: 'Assembly failed',error: err})
             }
-            storage.create(result, function(err, file){
+            storage.insertMany([result.assembly, result.result], function(err, file){
                 if(err){
                     res.json({
                         status: 'failed',
@@ -194,7 +194,7 @@ ruta.post('/unicycler', async(req, res)=> {
                 res.json({
                     status: 'success',
                     message: 'Unicycler assembly complete ',
-                    result: file._id
+                    result: file[1]._id
                 })
             })
         })

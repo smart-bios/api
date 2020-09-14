@@ -87,7 +87,7 @@ ruta.post("/listfiles/", async(req, res) =>{
 */
 ruta.post("/list", async(req, res) =>{
     try {
-        let result = await Storage.find({user: req.body.user, type: req.body.type, category: req.body.category})
+        let result = await Storage.find({user: req.body.user, category: req.body.category})
         res.json({
             status: 'success',
             files: result

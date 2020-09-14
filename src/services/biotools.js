@@ -81,7 +81,8 @@ export default {
 
         let fq =  path.join(__dirname, `../../${input.fq}`);
         let output = path.join(__dirname, `../../storage/${input.user}/tmp/`);
-        let basemame = path.basename(input.fq, '.fastq.gz');
+        //let basemame = path.basename(input.fq, '.fastq.gz');
+        let file_name = path.basename(input.fq).split('.');
        
         const cmd_fastqc = spawn('fastqc',['-t', 2, '-o', output, '--extract', fq])
 
@@ -90,9 +91,9 @@ export default {
         cmd_fastqc.on('close', (code) => {
            console.log(`fastqc process exited with code ${code}`);
             if(code == 0){
-                let basic   = parse.parseFastqData(`${output}/${basemame}_fastqc/fastqc_data.txt`)
-                let summary = parse.parseSummary(`${output}/${basemame}_fastqc/summary.txt`)
-                let report  = `/storage/${input.user}/tmp/${basemame}_fastqc.zip`
+                let basic   = parse.parseFastqData(`${output}/${file_name[0]}_fastqc/fastqc_data.txt`)
+                let summary = parse.parseSummary(`${output}/${file_name[0]}_fastqc/summary.txt`)
+                let report  = `/storage/${input.user}/tmp/${file_name[0]}_fastqc.zip`
 
                 return cb(null, {
                     basic,
@@ -174,6 +175,8 @@ export default {
         let zip = `${output}.zip`
 
         const cmd_unicycler = spawn('unicycler',['-1', fq1, '-2', fq2, '--min_fasta_length', length, '-t', threads,'-o', output,'--spades_path', '/opt/biotools/SPAdes-3.13.0-Linux/bin/spades.py'])
+        cmd_unicycler.stderr.on('data', (data) => {console.log(data.toString())});
+        cmd_unicycler.stdout.on('data', (data) => {console.log(data.toString())});
 
         cmd_unicycler.on('close', (code) => {
             console.log(`unicycler process exited with code ${code}`);
@@ -186,10 +189,22 @@ export default {
                         user: `${input.user}`,
                         filename: `${input.name}.zip`,
                         path: `storage/${input.user}/tmp/${input.name}.zip`,
-                        description: `Unicyclet result`,
+                        description: `Unicycler result`,
                         type: 'result'
                     }
-                    return cb(null, result)
+                    let assembly = {
+                        user: `${input.user}`,
+                        filename: `${input.name}_assembly.fasta`,
+                        path: `storage/${input.user}/tmp/${input.name}/assembly.fasta`,
+                        description: `Unicycler Assembly`,
+                        category: 'fasta',
+                        type: 'result'
+                    }
+                    return cb(null, {
+                        result,
+                        assembly
+                    }
+                    )
                 })
             }else{
                     return cb(err, null)
