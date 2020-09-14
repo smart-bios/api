@@ -3,9 +3,13 @@ import path from 'path';
 import compress from 'zip-a-folder'
 import os from 'os'
 import parse from './parse'
+import nodemailer from 'nodemailer'
 
 const home = os.homedir()
 const databasesRoot = path.join(home,'databases');
+const prokka = '/opt/biotools/prokka/bin/prokka';
+const eggNOG = '/opt/biotools/eggnog-mapper/emapper.py';
+const ssrPrimers = '/opt/biotools/SSRMMD/connectorToPrimer3/connectorToPrimer3.pl'
 const threads = 4
 
 
@@ -43,6 +47,7 @@ export default {
         });
 
     },
+
     /*
     |--------------------------------------------------------------------------
     | in silico PCR
@@ -194,6 +199,130 @@ export default {
 
     /*
     |--------------------------------------------------------------------------
+    |QUAST
+    |--------------------------------------------------------------------------
+    */
+    quast: (input, cb) => {
+        
+        let assembly = path.join(__dirname, `../../${input.assembly}`)
+        let reference = `${path.join(home, input.reference)}_genomic.fna`
+        let anotation = `${path.join(home, input.reference)}_genomic.gff`
+        let output = path.join(__dirname, `../../storage/${input.user}/tmp/quast/${input.name}`);
+        let parametros = ['-m', input.length, '--contig-thresholds', input.thresholds, '-t', 6, '-o', output, '--no-html','--no-icarus', '--plots-format', 'png']
+        input.compare ? parametros = parametros.concat(['-r', reference, '-g', anotation, assembly]) : parametros.push(assembly)
+
+        let cmd_quast = spawn('quast.py', parametros)
+        cmd_quast.stdout.on('data', (data) => {console.log(data.toString())})
+        cmd_quast.stderr.on('data', (data) => {console.log(data.toString())})
+
+        cmd_quast.on('close', (code) => {
+            console.log(`Quast process exited with code ${code}`);
+            
+            if(code == 0){
+                compress.zipFolder(output, `${output}.zip`, function(err){
+                    if(err){
+                        return cb('Error comprimir archivo', null)
+                    }
+
+                    let result = {
+                        user: `${input.user}`,
+                        filename: `${input.name}.zip`,
+                        path: `storage/${input.user}/tmp/quast/${input.name}.zip`,
+                        description: 'Quast result',
+                        type: 'result'
+                    }
+                    return cb(null, {
+                        result,
+                        report: `${output}/report.tsv`,
+                        unaligned: `${output}/contigs_reports/unaligned_report.tsv`
+                    })
+                })
+            }else{
+                    return cb('ERROR QUAST', null)
+            }  
+        })
+
+        
+    },
+
+    /*
+    |--------------------------------------------------------------------------
+    |PROKKA
+    |--------------------------------------------------------------------------
+    */
+    prokka: (input, cb) =>{
+        let fasta = path.join(__dirname, `../../${input.fasta_file}`)
+        let output = path.join(__dirname, `../../storage/${input.user}/tmp/prokka/${input.name}`);
+        let parametros = ['-outdir', output, '--prefix', input.name, '--locustag', input.locustag, '--kingdom', input.kingdom, '--genus', input.genus, '--species', input.species, '--strain', input.strain, '--plasmid', input.plasmid, '--cpus', threads,'--force', fasta ] 
+        let cmd_pokka = spawn(prokka, parametros);
+        cmd_pokka.stderr.on('data', (data) => {console.log(data.toString())});
+        cmd_pokka.on('close', (code) => {
+            console.log(`prokka process exited with code ${code}`);
+            
+            if(code == 0){
+                compress.zipFolder(output, `${output}.zip`, function(err){
+                    if(err){
+                        return cb(err, null)
+                    }
+    
+                    let result = {
+                        user: `${input.user}`,
+                        filename: `${input.name}.zip`,
+                        path: `storage/${input.user}/tmp/prokka/${input.name}.zip`,
+                        description: 'Prokka result',
+                        type: 'result'
+                    }
+                    
+                    return cb(null,{
+                        result,
+                        report: `${output}/${input.name}.txt`
+                    })
+                })
+            }else{
+                return cb('ERROR Prokka', null)
+            }
+        })
+    
+    },
+
+    /*
+    |--------------------------------------------------------------------------
+    |eggNOG
+    |--------------------------------------------------------------------------
+    */
+    eggNOG: (input, cb) => {
+        let cpus = 5
+        let database = `${databasesRoot}/eggNOG/`
+        let fasta = path.join(__dirname, `../../${input.fasta}`)
+        let output = path.join(__dirname, `../../storage/${input.user}/tmp/`);
+        let parametros = ['-i', fasta, '-o', input.name, '--output_dir', output, '--data_dir', database, '--tax_scope', input.tax_scope, '--target_orthologs', input.ortho, '-m', 'diamond', '--cpu', cpus]
+        input.translate ? parametros.push('--translate') : console.log('protein sequences')
+
+        let cmd_eggNOG = spawn(eggNOG, parametros);
+        cmd_eggNOG.stderr.on('data', (data) => {console.log(data.toString())});
+        cmd_eggNOG.on('close', (code) => {
+            console.log(`eggNOG process exited with code ${code}`);
+            
+            if(code == 0){
+                let report = `${output}/${input.name}.emapper.annotations`
+                let annotations  = `storage/${input.user}/tmp/${input.name}.emapper.annotations`
+                let orthologs = `storage/${input.user}/tmp/${input.name}.emapper.seed_orthologs` 
+                return cb(null, {
+                    report,
+                    annotations,
+                    orthologs
+                })
+            }else{
+                return cb('ERROR eggNOG', null)
+            }
+
+        })
+        
+        
+    },
+
+    /*
+    |--------------------------------------------------------------------------
     |PERF
     |--------------------------------------------------------------------------
     */
@@ -219,6 +348,77 @@ export default {
         })
 
     },
+
+    /*
+    |--------------------------------------------------------------------------
+    |SRRMMD
+    |--------------------------------------------------------------------------
+    */
+    ssrmmd: (input, cb) => {
+        let fasta1 =  path.join(__dirname, `../../${input.f1}`)
+        let fasta2 =  path.join(__dirname, `../../${input.f2}`)
+        let output = path.join(__dirname, `../../storage/${input.user}/tmp/${input.name}`);
+        let parametros = ['-f1', fasta1, '-p', input.poly, '-o', output, '-ss', 1,'-t', threads, '-mo', input.motif, '-minLen', input.minLen, '-maxLen', input.maxLen, '-length', input.length]
+        let basename1 = path.basename(fasta1)
+        let basename2 = path.basename(fasta2)
+
+        input.poly == 1 ? parametros = ['-f1', fasta1, '-f2', fasta2, '-p', input.poly, '-o', output, '-ss', 1,'-t', threads, '-mo', input.motif, '-minLen', input.minLen, '-maxLen', input.maxLen, '-length', input.length]  : console.log('es 0')
+        
+        const cmd_ssrmmd = spawn('SSRMMD.pl', parametros)
+        cmd_ssrmmd.stdout.on('data', (data) => {console.log(data.toString())});
+        cmd_ssrmmd.stderr.on('data', (data) => {console.log(data.toString())});
+        cmd_ssrmmd.on('close', (code)=> {
+            console.log(`SSRMMD process exited with code ${code}`);
+            if(code == 0){
+
+                if(input.poly == 1){
+                    let ssr_result1 = `${output}/${basename1}.SSRs`
+                    let ssr_result2 = `${output}/${basename2}.SSRs`
+                    let stat1 = `${output}/${basename1}.stat`
+                    let stat2 = `${output}/${basename2}.stat`
+                    let primers_result = `${output}/primers.txt`
+                    let compare = `${output}/${basename1}-and-${basename2}.compare`
+                    let primers = spawn(ssrPrimers,['-i', compare, '-s', 2, '-o', primers_result])
+                    primers.on('close', (code) =>{
+                        console.log(`SSRMMD process exited with code ${code}`);
+                        if(code == 0){
+                            return cb(null,{
+                                ssr_result1,
+                                ssr_result2,
+                                stat1,
+                                stat2,
+                                compare,
+                                primers_result
+                            })
+                        }else{
+                            return cb('ERROR GENERAR PRIMERS', null)
+                        }
+                    })   
+                }else{
+                    let ssr_result1 = `${output}/${basename1}.SSRs`
+                    let primers_result = `${output}/${input.name}_primers.tsv`
+                    let primers = spawn(ssrPrimers,['-i', ssr_result1, '-o', primers_result])
+                    primers.on('close', (code) =>{
+                        if(code == 0){
+                            return cb(null, {
+                                report: ssr_result1,
+                                path_ssr: `storage/${input.user}/tmp/${input.name}/${basename1}.SSRs`,
+                                path_stat: `storage/${input.user}/tmp/${input.name}/${basename1}.stat`,
+                                primers_result: `storage/${input.user}/tmp/${input.name}/${input.name}_primers.tsv`
+                            })
+                        }else{
+                            return cb('ERROR GENERAR PRIMERS', null)
+                        }
+                    })  
+
+                }
+                            
+            }else{
+                return cb('ERROR SRRMMD', null)
+            }
+        })
+        
+    }
 
 
 }

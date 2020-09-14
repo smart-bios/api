@@ -2,6 +2,7 @@ import {Router} from 'express';
 import Storage from '../models/storage'
 import fs from 'fs'
 import path from 'path'
+import { runInNewContext } from 'vm';
 
 const ruta = Router();
 const extensions = ['fasta','faa','ffn','fna','fa','fastq','fq','gz','tsv','cvs']
@@ -60,13 +61,12 @@ ruta.post('/upload', (req, res) => {
 
 /*
 |--------------------------------------------------------------------------
-| List all files 
+| List all files  by type
 |--------------------------------------------------------------------------
 */
-ruta.get("/list/:id", async(req, res) =>{
+ruta.post("/listfiles/", async(req, res) =>{
     try {
-        let _id = req.params.id;
-        let result = await Storage.find({user: _id})
+        let result = await Storage.find({user: req.body.user, type: req.body.type})
         res.json({
             status: 'success',
             files: result
@@ -87,7 +87,7 @@ ruta.get("/list/:id", async(req, res) =>{
 */
 ruta.post("/list", async(req, res) =>{
     try {
-        let result = await Storage.find({user: req.body.user, type: req.body.type})
+        let result = await Storage.find({user: req.body.user, type: req.body.type, category: req.body.category})
         res.json({
             status: 'success',
             files: result

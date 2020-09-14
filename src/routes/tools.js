@@ -2,9 +2,12 @@
 import { Router } from 'express'; 
 import tools from '../services/biotools';
 import storage from '../models/storage';
+import csv from 'csv-parser'
+import fs from 'fs'
+
 
 const ruta = Router();
-
+const parse = [];
 /*
 |--------------------------------------------------------------------------
 | blast
@@ -203,6 +206,154 @@ ruta.post('/unicycler', async(req, res)=> {
     }
 })
 
+
+/*
+|--------------------------------------------------------------------------
+| QUAST
+|--------------------------------------------------------------------------
+*/
+ruta.post('/quast', async(req, res) => {
+
+    tools.quast(req.body, function(err, result){
+        let quast_report = []
+        let unaligned_report = []
+
+
+        storage.create(result.result, function(err, file){
+            if(err){
+                res.json({
+                    status: 'danger',
+                    message: 'QUAST failed',
+                    error: err
+                })
+            }
+            fs.createReadStream(result.report)
+            .pipe(csv({ separator: '\t', headers: ['item','value'] }))
+            .on('data', (data) => quast_report.push(data))
+            .on('end', () => {
+                fs.createReadStream(result.unaligned)
+                .pipe(csv({ separator: '\t', headers: ['item','value'] }))
+                .on('data', (data) => unaligned_report.push(data))
+            .   on('end', () => {
+                    res.json({
+                        status: 'success',
+                        message: 'Quast complete',
+                        report: quast_report,
+                        unaligned: unaligned_report,
+                        result: file._id
+                    })
+                });
+            });
+
+        })
+
+
+
+        
+        
+        
+    })
+})
+
+/*
+|--------------------------------------------------------------------------
+| PROKKA
+|--------------------------------------------------------------------------
+*/
+
+ruta.post('/prokka', async(req, res) => {
+    tools.prokka(req.body, function(err, result){
+
+        storage.create(result.result, function(err, file){
+            if(err){
+                res.json({
+                    status: 'danger',
+                    message: 'Prokka failed',
+                    error: err
+                })
+            }
+            let data = fs.readFileSync(result.report,'utf8')
+            let lines = data.split('\n')
+
+            res.json({
+                status: 'success',
+                message: 'Prokka complete',
+                result: file._id,
+                report: lines
+            })
+
+        })
+        
+    })
+    
+})
+
+/*
+|--------------------------------------------------------------------------
+| eggNOG
+|--------------------------------------------------------------------------
+*/
+ruta.post('/eggNOG', async(req, res) => {
+    //console.log(req.body);
+    tools.eggNOG(req.body, function(err, result){
+        
+        if(err){
+            res.json({ status: 'danger', message: err})
+        }else{
+            let report = []
+            fs.createReadStream(result.report)
+            .pipe(csv({ separator: '\t'}))
+            .on('data', (data) => report.push(data))
+            .on('end', () => {
+                res.json({
+                    status: 'success',
+                    message: 'eggNOG complete',
+                    report: report,
+                    annotations : result.annotations,
+                    orthologs: result.orthologs
+                })
+            });
+        }
+
+        
+    })
+    
+})
+
+
+
+/*
+|--------------------------------------------------------------------------
+| SSRMMD
+|--------------------------------------------------------------------------
+*/
+ruta.post('/SSRMMD', async(req, res)=> {
+
+    tools.ssrmmd(req.body, function(err, result){
+        if(err){
+            res.json({ status: 'danger', message: err})
+        }
+        let ssr_report = []
+        fs.createReadStream(result.report)
+        .pipe(csv({ separator: '\t' }))
+        .on('data', (data) => ssr_report.push(data))
+        .on('end', () => {
+            res.json({
+                status: 'success',
+                message: 'SRRMMD complete',
+                report: ssr_report,
+                result: result.path_ssr,
+                stat: result.path_stat,
+                primers: result.primers_result
+
+            })
+        });
+    })
+
+    
+})
+
+
 /*
 |--------------------------------------------------------------------------
 | PERF
@@ -214,7 +365,7 @@ ruta.post('/perf', async(req, res) => {
             if(err){
                 res.json({ status: 'failed',message: 'PERF failed',error: err})
             }
-            
+
             res.json({
                 status: 'Success',
                 message: 'PERF complete',
