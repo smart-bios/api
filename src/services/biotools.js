@@ -28,7 +28,7 @@ export default {
         let result = ''
 
         const seq = spawn('echo',[`${input.query}`])
-        const blastcmd = spawn(`${input.type_blast}`, ['-db', `${database}`, '-num_threads', 4, '-outfmt', `${outfmt}`])
+        const blastcmd = spawn(`${input.type_blast}`, ['-db', database, '-num_threads', threads, '-outfmt', outfmt])
 
         seq.stdout.on('data', (data) => { blastcmd.stdin.write(data)});
         seq.stderr.on('data', (data) => { console.error(`stderr seq: ${data}`);});
@@ -223,7 +223,7 @@ export default {
         let reference = `${path.join(home, input.reference)}_genomic.fna`
         let anotation = `${path.join(home, input.reference)}_genomic.gff`
         let output = path.join(__dirname, `../../storage/${input.user}/tmp/quast/${input.name}`);
-        let parametros = ['-m', input.length, '--contig-thresholds', input.thresholds, '-t', 6, '-o', output, '--no-html','--no-icarus', '--plots-format', 'png']
+        let parametros = ['-m', input.length, '--contig-thresholds', input.thresholds, '-t', threads, '-o', output, '--no-html','--no-icarus', '--plots-format', 'png']
         input.compare ? parametros = parametros.concat(['-r', reference, '-g', anotation, assembly]) : parametros.push(assembly)
 
         let cmd_quast = spawn('quast.py', parametros)
@@ -306,11 +306,10 @@ export default {
     |--------------------------------------------------------------------------
     */
     eggNOG: (input, cb) => {
-        let cpus = 5
         let database = `${databasesRoot}/eggNOG/`
         let fasta = path.join(__dirname, `../../${input.fasta}`)
         let output = path.join(__dirname, `../../storage/${input.user}/tmp/`);
-        let parametros = ['-i', fasta, '-o', input.name, '--output_dir', output, '--data_dir', database, '--tax_scope', input.tax_scope, '--target_orthologs', input.ortho, '-m', 'diamond', '--cpu', cpus]
+        let parametros = ['-i', fasta, '-o', input.name, '--output_dir', output, '--data_dir', database, '--tax_scope', input.tax_scope, '--target_orthologs', input.ortho, '-m', 'diamond', '--cpu', threads]
         input.translate ? parametros.push('--translate') : console.log('protein sequences')
 
         let cmd_eggNOG = spawn(eggNOG, parametros);
@@ -349,7 +348,7 @@ export default {
         let file_name = path.basename(fasta).split('.');
         let tsv = path.join(__dirname, `../../storage/${input.user}/${file_name[0]}_perf.tsv`)
 
-        const cmd_perf = spawn('PERF', ['-i', fasta, '-m', minimum, '-M', maximum, '-l', length, '-a', '-t', 2])
+        const cmd_perf = spawn('PERF', ['-i', fasta, '-m', minimum, '-M', maximum, '-l', length, '-a', '-t', 4])
         cmd_perf.stdout.on('data', (data) => {console.log(data.toString())});
         
         cmd_perf.on('close', (code)=> {
