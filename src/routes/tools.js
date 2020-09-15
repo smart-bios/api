@@ -245,14 +245,42 @@ ruta.post('/quast', async(req, res) => {
                 });
             });
 
+        })        
+    })
+})
+
+/*
+|--------------------------------------------------------------------------
+| BUSCO
+|--------------------------------------------------------------------------
+*/
+ruta.post('/busco', async(req, res) => {
+    console.log(req.body)
+
+    tools.busco(req.body, function(err, result){
+        if(err){
+            res.json({ status: 'danger', message: err})
+        }
+
+        storage.create(result.result, function(err, file){
+            if(err){
+                res.json({ status: 'danger', message: err})
+            }
+            
+            let data = fs.readFileSync(result.report,'utf8')
+            let lines = data.split('\n')
+
+            res.json({
+                status: 'success',
+                message: 'BUSCO complete',
+                report: lines,
+                result: file._id
+            })
         })
 
-
-
-        
-        
-        
     })
+
+    
 })
 
 /*

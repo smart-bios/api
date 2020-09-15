@@ -262,6 +262,47 @@ export default {
 
     /*
     |--------------------------------------------------------------------------
+    |BUSCO
+    |--------------------------------------------------------------------------
+    */
+    busco: (input, cb) => {
+        let fasta = path.join(__dirname, `../../${input.fasta}`) 
+        let lineage = path.join(databasesRoot, `/busco/${input.lineage}`)
+        let output = path.join(__dirname, `../../storage/${input.user}/tmp/`);
+        let config = '/opt/biotools/busco/config/config.ini'
+        let parametros = ['-i', fasta, '-o', input.name, '--out_path', output, '-l', lineage, '-m', input.mode, '-c', threads, '--config', config, '--offline', '-f']
+
+        let cmd_busco = spawn('busco', parametros)
+        cmd_busco.stderr.on('data', (data) => {console.log(data.toString())});
+        cmd_busco.stdout.on('data', (data) => {console.log(data.toString())});
+
+        cmd_busco.on('close', (code) => {
+            console.log(`BUSCO process exited with code ${code}`);
+            if(code == 0){
+                compress.zipFolder(`${output}/${input.name}`,`${output}/${input.name}.zip`, function(err){
+
+                    let result = {
+                        user: `${input.user}`,
+                        filename: `${input.name}.zip`,
+                        path: `storage/${input.user}/tmp/${input.name}.zip`,
+                        description: 'BUSCO result',
+                        type: 'result'
+                    }
+
+                    return cb(null, {
+                        result,
+                        report: `${output}/${input.name}/short_summary.specific.${input.lineage}.${input.name}.txt`
+                    })
+                })
+                
+            }else{
+                return cb('ERROR BUSCO', null)
+            }
+        })
+    },
+
+    /*
+    |--------------------------------------------------------------------------
     |PROKKA
     |--------------------------------------------------------------------------
     */
