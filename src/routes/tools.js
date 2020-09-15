@@ -181,22 +181,24 @@ ruta.post('/unicycler', async(req, res)=> {
     try {
         tools.unicycler(req.body, function(err, result){
             if(err){
-                res.json({ status: 'failed',message: 'Assembly failed',error: err})
-            }
-            storage.insertMany([result.assembly, result.result], function(err, file){
-                if(err){
+                res.json({ status: 'danger',message: err})
+            }else{
+                storage.insertMany([result.assembly, result.result], function(err, file){
+                    if(err){
+                        res.json({
+                            status: 'failed',
+                            message: 'Assembly failed',
+                            error: err
+                        })
+                    }
                     res.json({
-                        status: 'failed',
-                        message: 'Assembly failed',
-                        error: err
+                        status: 'success',
+                        message: 'Unicycler assembly complete ',
+                        result: file[1]._id
                     })
-                }
-                res.json({
-                    status: 'success',
-                    message: 'Unicycler assembly complete ',
-                    result: file[1]._id
                 })
-            })
+            }
+            
         })
     } catch (error) {
         res.status(500).json({
@@ -223,26 +225,37 @@ ruta.post('/quast', async(req, res) => {
             if(err){
                 res.json({
                     status: 'danger',
-                    message: 'QUAST failed',
-                    error: err
+                    message: err
                 })
             }
+
             fs.createReadStream(result.report)
             .pipe(csv({ separator: '\t', headers: ['item','value'] }))
             .on('data', (data) => quast_report.push(data))
             .on('end', () => {
-                fs.createReadStream(result.unaligned)
-                .pipe(csv({ separator: '\t', headers: ['item','value'] }))
-                .on('data', (data) => unaligned_report.push(data))
-            .   on('end', () => {
+                if(result.unaligned != null){
+                    fs.createReadStream(result.unaligned)
+                    .pipe(csv({ separator: '\t', headers: ['item','value'] }))
+                    .on('data', (data) => unaligned_report.push(data))
+                    .on('end', () => {
+                        res.json({
+                            status: 'success',
+                            message: 'Quast complete',
+                            report: quast_report,
+                            unaligned: unaligned_report,
+                            result: file._id
+                        })
+                    });
+                }else{
                     res.json({
                         status: 'success',
                         message: 'Quast complete',
                         report: quast_report,
-                        unaligned: unaligned_report,
+                        unaligned: null,
                         result: file._id
                     })
-                });
+                }
+                
             });
 
         })        

@@ -2,6 +2,7 @@ import { spawn } from 'child_process';
 import path from 'path';
 import compress from 'zip-a-folder'
 import os from 'os'
+import fs from 'fs'
 import parse from './parse'
 import nodemailer from 'nodemailer'
 
@@ -10,7 +11,7 @@ const databasesRoot = path.join(home,'databases');
 const prokka = '/opt/biotools/prokka/bin/prokka';
 const eggNOG = '/opt/biotools/eggnog-mapper/emapper.py';
 const ssrPrimers = '/opt/biotools/SSRMMD/connectorToPrimer3/connectorToPrimer3.pl'
-const threads = 4
+const threads = 8
 
 
 export default {
@@ -207,7 +208,7 @@ export default {
                     )
                 })
             }else{
-                    return cb(err, null)
+                    return cb('ERROR UNICYCLER', null)
             }            
         })
     },
@@ -218,26 +219,27 @@ export default {
     |--------------------------------------------------------------------------
     */
     quast: (input, cb) => {
-        
         let assembly = path.join(__dirname, `../../${input.assembly}`)
-        let reference = `${path.join(home, input.reference)}_genomic.fna`
-        let anotation = `${path.join(home, input.reference)}_genomic.gff`
         let output = path.join(__dirname, `../../storage/${input.user}/tmp/quast/${input.name}`);
         let parametros = ['-m', input.length, '--contig-thresholds', input.thresholds, '-t', threads, '-o', output, '--no-html','--no-icarus', '--plots-format', 'png']
-        input.compare ? parametros = parametros.concat(['-r', reference, '-g', anotation, assembly]) : parametros.push(assembly)
+
+        if(input.compare){
+            let reference = `${path.join(home, input.reference)}_genomic.fna`
+            let anotation = `${path.join(home, input.reference)}_genomic.gff`
+            parametros = parametros.concat(['-r', reference, '-g', anotation, assembly])
+        }else {
+            parametros.push(assembly)
+        }
 
         let cmd_quast = spawn('quast.py', parametros)
+        
         cmd_quast.stdout.on('data', (data) => {console.log(data.toString())})
-        cmd_quast.stderr.on('data', (data) => {console.log(data.toString())})
 
         cmd_quast.on('close', (code) => {
             console.log(`Quast process exited with code ${code}`);
-            
             if(code == 0){
                 compress.zipFolder(output, `${output}.zip`, function(err){
-                    if(err){
-                        return cb('Error comprimir archivo', null)
-                    }
+                    if(err){return cb('Error comprimir archivo', null)}
 
                     let result = {
                         user: `${input.user}`,
@@ -246,18 +248,27 @@ export default {
                         description: 'Quast result',
                         type: 'result'
                     }
-                    return cb(null, {
-                        result,
-                        report: `${output}/report.tsv`,
-                        unaligned: `${output}/contigs_reports/unaligned_report.tsv`
-                    })
+
+                    if (fs.existsSync(`${output}/contigs_reports/unaligned_report.tsv`)) {
+                        return cb(null, {
+                            result,
+                            report: `${output}/report.tsv`,
+                            unaligned: `${output}/contigs_reports/unaligned_report.tsv`
+                        })
+                    }else{
+                        return cb(null, {
+                            result,
+                            report: `${output}/report.tsv`,
+                            unaligned: null
+                        })
+                    }
+                      
+                    
                 })
             }else{
                     return cb('ERROR QUAST', null)
             }  
-        })
-
-        
+        })        
     },
 
     /*
