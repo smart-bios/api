@@ -82,7 +82,6 @@ export default {
 
         let fq =  path.join(__dirname, `../../${input.fq}`);
         let output = path.join(__dirname, `../../storage/${input.user}/tmp/`);
-        //let basemame = path.basename(input.fq, '.fastq.gz');
         let file_name = path.basename(input.fq).split('.');
        
         const cmd_fastqc = spawn('fastqc',['-t', 2, '-o', output, '--extract', fq])
@@ -94,7 +93,7 @@ export default {
             if(code == 0){
                 let basic   = parse.parseFastqData(`${output}/${file_name[0]}_fastqc/fastqc_data.txt`)
                 let summary = parse.parseSummary(`${output}/${file_name[0]}_fastqc/summary.txt`)
-                let report  = `/storage/${input.user}/tmp/${file_name[0]}_fastqc.zip`
+                let report  = `storage/${input.user}/tmp/${file_name[0]}_fastqc.zip`
 
                 return cb(null, {
                     basic,
@@ -103,7 +102,7 @@ export default {
                 })
 
             }else{
-                return cb(err, null, null)
+                return cb('ERROR FASTQC', null)
             }            
         })
     },
@@ -159,7 +158,7 @@ export default {
                     return cb(null, {trim1, reportfq1})
                 }
             }
-            return cb('error trim galore', null)
+            return cb('ERROR TRIM GALORE', null)
         })       
     },
 
@@ -346,7 +345,7 @@ export default {
                     })
                 })
             }else{
-                return cb('ERROR Prokka', null)
+                return cb('ERROR PROKKA', null)
             }
         })
     
@@ -405,12 +404,17 @@ export default {
         
         cmd_perf.on('close', (code)=> {
             console.log(`PERF process exited with code ${code}`);
-            let report = parse.parsePerf(tsv)
-            return cb(null, {
-                html: `storage/${input.user}/${file_name[0]}_perf.html`,
-                tsv: `storage/${input.user}/${file_name[0]}_perf.tsv`,
-                report
-            })
+            if(code == 0){
+                let report = parse.parsePerf(tsv)
+                return cb(null, {
+                    html: `storage/${input.user}/${file_name[0]}_perf.html`,
+                    tsv: `storage/${input.user}/${file_name[0]}_perf.tsv`,
+                    report
+                })
+            }else{
+                return cb('ERROR PERF', null)
+            }
+            
         })
 
     },
@@ -446,7 +450,7 @@ export default {
                     let compare = `${output}/${basename1}-and-${basename2}.compare`
                     let primers = spawn(ssrPrimers,['-i', compare, '-s', 2, '-o', primers_result])
                     primers.on('close', (code) =>{
-                        console.log(`SSRMMD process exited with code ${code}`);
+                        console.log(`PRIMERS process exited with code ${code}`);
                         if(code == 0){
                             return cb(null,{
                                 ssr_result1,
@@ -465,6 +469,7 @@ export default {
                     let primers_result = `${output}/${input.name}_primers.tsv`
                     let primers = spawn(ssrPrimers,['-i', ssr_result1, '-o', primers_result])
                     primers.on('close', (code) =>{
+                        console.log(`PRIMERS process exited with code ${code}`);
                         if(code == 0){
                             return cb(null, {
                                 report: ssr_result1,
@@ -478,10 +483,9 @@ export default {
                     })  
 
                 }
-                            
             }else{
-                return cb('ERROR SRRMMD', null)
-            }
+                return cb('NO SE ENCONTRARON SSR', null)
+            }        
         })
         
     }

@@ -86,9 +86,8 @@ ruta.post('/fastqc', async(req, res) => {
         tools.fastqc(req.body, function(err, result){
             if(err){
                 res.json({
-                    status: 'failed',
-                    message: 'Fastqc failed',
-                    error: err
+                    status: 'danger',
+                    message: err
                 })
             }
 
@@ -100,7 +99,7 @@ ruta.post('/fastqc', async(req, res) => {
         })
     } catch (error) {
         res.status(500).json({
-            status: 'failed',
+            status: 'danger',
             error
         }); 
     }
@@ -116,52 +115,52 @@ ruta.post('/trimgalore', async(req, res) => {
     try {
         tools.trimgalore(req.body, function(err, result){
             if(err){
-                res.json({ status: 'failed', message: 'Trim Galore failed', err})
-            }
+                res.json({ status: 'danger', message: err })
+            }else{
+                let trim_reads = []
+                req.body.paired ? trim_reads = [result.trim1, result.trim2] : trim_reads = [result.trim1] 
+                storage.insertMany(trim_reads, function(err, data){
+                    if(err){
+                        res.json({
+                            status: 'failed',
+                            message: 'Trim Galore failed',
+                            error: err
+                        })
+                    }
+                    if(req.body.paired){
+                        res.json({
+                            status: 'success',
+                            message: 'Trim Galore complete',
+                            fq1 : {
+                                filename: result.trim1.filename,
+                                path: result.trim1.path,
+                                path_report: result.trim1.report,
+                                report: result.reportfq1
+                            },
+                            fq2 : {
+                                filename: result.trim2.filename,
+                                path: result.trim2.path,
+                                path_report: result.trim2.report,
+                                report: result.reportfq2
+                            }
+                        }) 
+                    }else{
+                        res.json({
+                            status: 'success',
+                            message: 'Trim Galore complete',
+                            fq1 : {
+                                filename: result.trim1.filename,
+                                path: result.trim1.path,
+                                path_report: result.trim1.report,
+                                report: result.reportfq1
+                            },
+                            fq2: ''
+                        }) 
+                    }
+                    
+                })
 
-            let trim_reads = []
-            req.body.paired ? trim_reads = [result.trim1, result.trim2] : trim_reads = [result.trim1] 
-            storage.insertMany(trim_reads, function(err, data){
-                if(err){
-                    res.json({
-                        status: 'failed',
-                        message: 'Trim Galore failed',
-                        error: err
-                    })
-                }
-                if(req.body.paired){
-                    res.json({
-                        status: 'success',
-                        message: 'Trim Galore complete',
-                        fq1 : {
-                            filename: result.trim1.filename,
-                            path: result.trim1.path,
-                            path_report: result.trim1.report,
-                            report: result.reportfq1
-                        },
-                        fq2 : {
-                            filename: result.trim2.filename,
-                            path: result.trim2.path,
-                            path_report: result.trim2.report,
-                            report: result.reportfq2
-                        }
-                    }) 
-                }else{
-                    res.json({
-                        status: 'success',
-                        message: 'Trim Galore complete',
-                        fq1 : {
-                            filename: result.trim1.filename,
-                            path: result.trim1.path,
-                            path_report: result.trim1.report,
-                            report: result.reportfq1
-                        },
-                        fq2: ''
-                    }) 
-                }
-                
-            })
-               
+            }               
         })
     } catch (error) {
         res.status(500).json({
@@ -217,48 +216,50 @@ ruta.post('/unicycler', async(req, res)=> {
 ruta.post('/quast', async(req, res) => {
 
     tools.quast(req.body, function(err, result){
-        let quast_report = []
-        let unaligned_report = []
 
+        if(err){
+            res.json({ status: 'danger',message: err})
+        }else{
+            let quast_report = []
+            let unaligned_report = []
+            
+            storage.create(result.result, function(err, file){
+                if(err){
+                    res.json({
+                        status: 'danger',
+                        message: err
+                    })
+                }
 
-        storage.create(result.result, function(err, file){
-            if(err){
-                res.json({
-                    status: 'danger',
-                    message: err
-                })
-            }
-
-            fs.createReadStream(result.report)
-            .pipe(csv({ separator: '\t', headers: ['item','value'] }))
-            .on('data', (data) => quast_report.push(data))
-            .on('end', () => {
-                if(result.unaligned != null){
-                    fs.createReadStream(result.unaligned)
-                    .pipe(csv({ separator: '\t', headers: ['item','value'] }))
-                    .on('data', (data) => unaligned_report.push(data))
-                    .on('end', () => {
+                fs.createReadStream(result.report)
+                .pipe(csv({ separator: '\t', headers: ['item','value'] }))
+                .on('data', (data) => quast_report.push(data))
+                .on('end', () => {
+                    if(result.unaligned != null){
+                        fs.createReadStream(result.unaligned)
+                        .pipe(csv({ separator: '\t', headers: ['item','value'] }))
+                        .on('data', (data) => unaligned_report.push(data))
+                        .on('end', () => {
+                            res.json({
+                                status: 'success',
+                                message: 'Quast complete',
+                                report: quast_report,
+                                unaligned: unaligned_report,
+                                result: file._id
+                            })
+                        });
+                    }else{
                         res.json({
                             status: 'success',
                             message: 'Quast complete',
                             report: quast_report,
-                            unaligned: unaligned_report,
+                            unaligned: null,
                             result: file._id
                         })
-                    });
-                }else{
-                    res.json({
-                        status: 'success',
-                        message: 'Quast complete',
-                        report: quast_report,
-                        unaligned: null,
-                        result: file._id
-                    })
-                }
-                
-            });
-
-        })        
+                    } 
+                });
+            })  
+        }
     })
 })
 
@@ -273,23 +274,25 @@ ruta.post('/busco', async(req, res) => {
     tools.busco(req.body, function(err, result){
         if(err){
             res.json({ status: 'danger', message: err})
+        }else{
+            storage.create(result.result, function(err, file){
+                if(err){
+                    res.json({ status: 'danger', message: err})
+                }
+                
+                let data = fs.readFileSync(result.report,'utf8')
+                let lines = data.split('\n')
+    
+                res.json({
+                    status: 'success',
+                    message: 'BUSCO complete',
+                    report: lines,
+                    result: file._id
+                })
+            })
         }
 
-        storage.create(result.result, function(err, file){
-            if(err){
-                res.json({ status: 'danger', message: err})
-            }
-            
-            let data = fs.readFileSync(result.report,'utf8')
-            let lines = data.split('\n')
-
-            res.json({
-                status: 'success',
-                message: 'BUSCO complete',
-                report: lines,
-                result: file._id
-            })
-        })
+        
 
     })
 
@@ -305,26 +308,29 @@ ruta.post('/busco', async(req, res) => {
 ruta.post('/prokka', async(req, res) => {
     tools.prokka(req.body, function(err, result){
 
-        storage.create(result.result, function(err, file){
-            if(err){
+        if(err){
+            res.json({ status: 'danger', message: err})
+        }else{
+            storage.create(result.result, function(err, file){
+                if(err){
+                    res.json({
+                        status: 'danger',
+                        message: 'Prokka failed',
+                        error: err
+                    })
+                }
+                let data = fs.readFileSync(result.report,'utf8')
+                let lines = data.split('\n')
+    
                 res.json({
-                    status: 'danger',
-                    message: 'Prokka failed',
-                    error: err
+                    status: 'success',
+                    message: 'Prokka complete',
+                    result: file._id,
+                    report: lines
                 })
-            }
-            let data = fs.readFileSync(result.report,'utf8')
-            let lines = data.split('\n')
-
-            res.json({
-                status: 'success',
-                message: 'Prokka complete',
-                result: file._id,
-                report: lines
+    
             })
-
-        })
-        
+        }     
     })
     
 })
@@ -335,7 +341,6 @@ ruta.post('/prokka', async(req, res) => {
 |--------------------------------------------------------------------------
 */
 ruta.post('/eggNOG', async(req, res) => {
-    //console.log(req.body);
     tools.eggNOG(req.body, function(err, result){
         
         if(err){
@@ -373,22 +378,24 @@ ruta.post('/SSRMMD', async(req, res)=> {
     tools.ssrmmd(req.body, function(err, result){
         if(err){
             res.json({ status: 'danger', message: err})
-        }
-        let ssr_report = []
-        fs.createReadStream(result.report)
-        .pipe(csv({ separator: '\t' }))
-        .on('data', (data) => ssr_report.push(data))
-        .on('end', () => {
-            res.json({
-                status: 'success',
-                message: 'SRRMMD complete',
-                report: ssr_report,
-                result: result.path_ssr,
-                stat: result.path_stat,
-                primers: result.primers_result
+        }else{
+            let ssr_report = []
+            fs.createReadStream(result.report)
+            .pipe(csv({ separator: '\t' }))
+            .on('data', (data) => ssr_report.push(data))
+            .on('end', () => {
+                res.json({
+                    status: 'success',
+                    message: 'SRRMMD complete',
+                    report: ssr_report,
+                    result: result.path_ssr,
+                    stat: result.path_stat,
+                    primers: result.primers_result
 
-            })
-        });
+                })
+            });
+        }
+        
     })
 
     
@@ -404,14 +411,16 @@ ruta.post('/perf', async(req, res) => {
     try {
         tools.perf(req.body, function(err, result){
             if(err){
-                res.json({ status: 'failed',message: 'PERF failed',error: err})
+                res.json({ status: 'danger',message: err})
+            }else{
+                res.json({
+                    status: 'Success',
+                    message: 'PERF complete',
+                    result
+                })
             }
-
-            res.json({
-                status: 'Success',
-                message: 'PERF complete',
-                result
-            })
+            
+            
         })
     } catch (error) {
         res.status(500).json({
