@@ -36,12 +36,12 @@ ruta.post('/upload', (req, res) => {
     let upload = {
         user: req.body.id,
         filename: sampleFile.name,
-        path: store,
+        path: `storage/${req.body.id}/${sampleFile.name}`,
         description: req.body.description,
         category: req.body.category
     }
 
-    sampleFile.mv(upload.path, function(err) {
+    sampleFile.mv(store, function(err) {
         if (err){
             return res.status(500).json({
                 status: 'fail',  
