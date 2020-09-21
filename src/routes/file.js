@@ -2,7 +2,6 @@ import {Router} from 'express';
 import Storage from '../models/storage'
 import fs from 'fs'
 import path from 'path'
-import { runInNewContext } from 'vm';
 
 const ruta = Router();
 const extensions = ['fasta','faa','ffn','fna','fa','fastq','fq','gz','tsv','cvs']
@@ -33,29 +32,34 @@ ruta.post('/upload', (req, res) => {
         });
     }
 
+    let store = path.join(__dirname, `../../storage/${req.body.id}/${sampleFile.name}`)
     let upload = {
         user: req.body.id,
         filename: sampleFile.name,
-        path: `storage/${req.body.id}/${sampleFile.name}`,
+        path: store,
         description: req.body.description,
         category: req.body.category
     }
+
     sampleFile.mv(upload.path, function(err) {
         if (err){
             return res.status(500).json({
-                status: 'failes',  
+                status: 'fail',  
                 message: 'No se pudo subier el archivo',
                 err
             });
-        }
-        Storage.create(upload, function(err, result){
+        }else{
+            Storage.create(upload, function(err, result){
             
-            res.json({
-                status: 'success',
-                message: 'Archivo recibido',
-                result       
+                res.json({
+                    status: 'success',
+                    message: 'Archivo recibido',
+                    result       
+                });
             });
-        });
+        }
+
+        
     });
 })
 

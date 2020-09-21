@@ -4,7 +4,6 @@ import compress from 'zip-a-folder'
 import os from 'os'
 import fs from 'fs'
 import parse from './parse'
-import nodemailer from 'nodemailer'
 
 const home = os.homedir()
 const databasesRoot = path.join(home,'databases');
@@ -109,6 +108,30 @@ export default {
 
     /*
     |--------------------------------------------------------------------------
+    | Fastp
+    |--------------------------------------------------------------------------
+    */
+   fastp: (input, cb) => {
+       let fq1 = path.join(__dirname, `../../${input.fq1}`)
+       let fq2 = path.join(__dirname, `../../${input.fq2}`)
+       let output = path.join(__dirname, `../../storage/${input.user}/tmp/`)
+       let parametros = ['-i', fq1, '-I', fq2, '-o', `${output}${input.name}_R1_good.fq.gz`, '-O', `${output}${input.name}_R2_good.fq.gz`, '-l', input.length, '-q', input.quality, '-j', `${input.name}.json`, '-h', `${input.name}.html`, '-w', threads]
+        
+       console.log('runnig fastp')
+       let cmd_fastp = spawn('fastp', parametros);
+
+       cmd_fastp.on('exit', (code) => {
+           console.log(`fastp process exited with code ${code}`);
+           if(code == 0){
+               return cb (null, parametros)
+           }else{
+               return('ERROR FASTP', null)
+           }
+       })      
+   },
+
+    /*
+    |--------------------------------------------------------------------------
     | Trin Galore
     |--------------------------------------------------------------------------
     */
@@ -168,13 +191,14 @@ export default {
     |--------------------------------------------------------------------------
     */
     unicycler: (input, cb) =>{
+        console.log(input)
         let fq1 =  path.join(__dirname, `../../${input.fq1}`)
         let fq2 =  path.join(__dirname, `../../${input.fq2}`)
         let length = input.length_fasta
-        let output = path.join(__dirname, `../../storage/${input.user}/tmp/${input.name}`)
+        let output = path.join(__dirname, `../../storage/${input.user.id}/tmp/${input.name}`)
         let zip = `${output}.zip`
 
-        const cmd_unicycler = spawn('unicycler',['-1', fq1, '-2', fq2, '--min_fasta_length', length, '-t', threads,'-o', output,'--spades_path', '/opt/biotools/SPAdes-3.13.0-Linux/bin/spades.py'])
+        const cmd_unicycler = spawn('unicycler',['-1', fq1, '-2', fq2,'--mode', input.mode, '--min_fasta_length', length, '-t', threads,'-o', output,'--spades_path', '/opt/biotools/SPAdes-3.13.0-Linux/bin/spades.py'])
         cmd_unicycler.stderr.on('data', (data) => {console.log(data.toString())});
         cmd_unicycler.stdout.on('data', (data) => {console.log(data.toString())});
 
@@ -185,24 +209,28 @@ export default {
                     if(err){
                         return cb(err, null)
                     }
+
                     let result = {
-                        user: `${input.user}`,
+                        user: `${input.user.id}`,
                         filename: `${input.name}.zip`,
-                        path: `storage/${input.user}/tmp/${input.name}.zip`,
+                        path: `storage/${input.user.id}/tmp/${input.name}.zip`,
                         description: `Unicycler result`,
                         type: 'result'
                     }
+
                     let assembly = {
-                        user: `${input.user}`,
+                        user: `${input.user.id}`,
                         filename: `${input.name}_assembly.fasta`,
-                        path: `storage/${input.user}/tmp/${input.name}/assembly.fasta`,
+                        path: `storage/${input.user.id}/tmp/${input.name}/assembly.fasta`,
                         description: `Unicycler Assembly`,
                         category: 'fasta',
                         type: 'result'
                     }
+                    
                     return cb(null, {
                         result,
-                        assembly
+                        assembly,
+                        file: `${output}.zip`
                     }
                     )
                 })

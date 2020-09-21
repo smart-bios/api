@@ -2,12 +2,28 @@
 import { Router } from 'express'; 
 import tools from '../services/biotools';
 import storage from '../models/storage';
-import csv from 'csv-parser'
-import fs from 'fs'
+import csv from 'csv-parser';
+import fs from 'fs';
+import nodemailer from 'nodemailer'
+
 
 
 const ruta = Router();
-const parse = [];
+
+const transporter = nodemailer.createTransport({
+    host: 'mail.cancerbacteriano.cl',
+    port: 465,
+    secure: true,
+    auth: {
+        user: 'redgenomica@cancerbacteriano.cl',
+        pass: 'inia.2019'
+    },
+    tls: {
+        rejectUnauthorized: false
+
+    }
+})
+
 /*
 |--------------------------------------------------------------------------
 | blast
@@ -107,6 +123,27 @@ ruta.post('/fastqc', async(req, res) => {
 
 /*
 |--------------------------------------------------------------------------
+| fastp
+|--------------------------------------------------------------------------
+*/
+ruta.post('/fastp', async(req, res) => {
+    
+    tools.fastp(req.body, function(err, result){
+        if(err){
+            res.json({status: 'danger', message: err})
+        }else{
+            res.json({
+                status: 'success',
+                message: 'Fasp complete',
+                result
+            })
+        }
+    })
+    
+})
+
+/*
+|--------------------------------------------------------------------------
 | trim galore
 |--------------------------------------------------------------------------
 */
@@ -182,14 +219,36 @@ ruta.post('/unicycler', async(req, res)=> {
             if(err){
                 res.json({ status: 'danger',message: err})
             }else{
+
+
+               let msj = {
+                    from: "'Red Genomica INIA'",
+                    to: req.body.user.email,
+                    subject: 'Resultados ensamble UNICYCLE',
+                    text: 'prueba de correo',
+                    attachments: [
+                        {
+                            path: result.file
+                        }
+                    ]
+                }
+            
+                transporter.sendMail(msj, function(err, info){
+                    if(err){
+                        console.log('ERROR:',err)
+                    }
+                    console.log('Correo enviado')
+                })
+
                 storage.insertMany([result.assembly, result.result], function(err, file){
+                    
                     if(err){
                         res.json({
-                            status: 'failed',
-                            message: 'Assembly failed',
-                            error: err
+                            status: 'danger',
+                            message: 'UNICYCLER FAILED',
                         })
                     }
+
                     res.json({
                         status: 'success',
                         message: 'Unicycler assembly complete ',
