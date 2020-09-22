@@ -387,7 +387,7 @@ export default {
     */
     dfast: (input, cb) => {
         let fasta = path.join(__dirname, `../../${input.fasta_file}`)
-        let output = path.join(__dirname, `../../storage/${input.user}/tmp/prokka/${input.name}`);
+        let output = path.join(__dirname, `../../storage/${input.user}/tmp/${input.name}`);
         let parametros = ['--genome', fasta, '--organism', input.organism, '--strain', input.strain, '--locus_tag_prefix', input.locustag, '--cpu', threads, '--force', '--out', output]
         let cmd_dfast = spawn(dfast, parametros);
         cmd_dfast.stdout.on('data', (data) => {console.log(data.toString())});
@@ -396,7 +396,24 @@ export default {
             console.log(`dfast process exited with code ${code}`);
             
             if(code == 0){
-                return cb(null, parametros)
+                compress.zipFolder(output, `${output}.zip`, function(err){
+                    if(err){
+                        return cb(err, null)
+                    }
+    
+                    let result = {
+                        user: `${input.user}`,
+                        filename: `${input.name}.zip`,
+                        path: `storage/${input.user}/tmp/${input.name}.zip`,
+                        description: 'Dfast result',
+                        type: 'result'
+                    }
+                    
+                    return cb(null,{
+                        result,
+                        report: `${output}/statistics.txt`
+                    })
+                })
             }else{
                 return cb('ERROR Dfast', null)
             }

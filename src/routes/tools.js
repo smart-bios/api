@@ -401,16 +401,28 @@ ruta.post('/dfast', async(req, res)=> {
     tools.dfast(req.body, function(err, result){
         if(err){
             res.json({ status: 'danger', message: err})
-        }
-        
-        res.json({
-            status: 'success',
-            message: 'Dfast complete',
-            result
-        })
-    })
-
+        }else{
+            storage.create(result.result, function(err, file){
+                if(err){
+                    res.json({
+                        status: 'danger',
+                        message: 'Dfast failed',
+                        error: err
+                    })
+                }
+                let data = fs.readFileSync(result.report,'utf8')
+                let lines = data.split('\n')
     
+                res.json({
+                    status: 'success',
+                    message: 'Dfast complete',
+                    result: file._id,
+                    report: lines
+                })
+    
+            })
+        }
+    })
 })
 /*
 |--------------------------------------------------------------------------
