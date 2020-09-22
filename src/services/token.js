@@ -2,8 +2,6 @@ import jwt from 'jsonwebtoken';
 import User from '../models/user';
 
 
-process.env.SECRET_KEY = "australopitecus"
-
 export default {
 
     /*

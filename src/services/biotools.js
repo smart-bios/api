@@ -11,7 +11,7 @@ const prokka = '/opt/biotools/prokka/bin/prokka';
 const dfast = '/opt/biotools/dfast_core/dfast'
 const eggNOG = '/opt/biotools/eggnog-mapper/emapper.py';
 const ssrPrimers = '/opt/biotools/SSRMMD/connectorToPrimer3/connectorToPrimer3.pl'
-const threads = 5
+const threads = process.env.THREADS
 
 
 export default {

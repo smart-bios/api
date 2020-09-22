@@ -7,6 +7,8 @@ import history from 'connect-history-api-fallback'
 import path from 'path'
 import rutas from './routes'
 import fileUpload  from 'express-fileupload'
+import dotenv from 'dotenv'
+dotenv.config()
 
 
 const app = express()
@@ -27,8 +29,7 @@ app.use(history());
 app.use(express.static(path.join(__dirname ,'/public')));
 
 //Database
-const database = 'red_genomica'
-const url = 'mongodb://localhost:27017/'+database
+const url = 'mongodb://localhost:27017/'+process.env.DATABASE
 const option = {
     useCreateIndex: true,
     useNewUrlParser: true, 
@@ -37,7 +38,7 @@ const option = {
 };
 
 mongoose.connect(url, option)
-.then(() => console.log(`conenctado a base de datos ${database}`))
+.then(() => console.log(`conenctado a base de datos ${process.env.DATABASE}`))
 .catch(e => console.log(e));
 
 

@@ -11,12 +11,12 @@ import nodemailer from 'nodemailer'
 const ruta = Router();
 
 const transporter = nodemailer.createTransport({
-    host: 'mail.cancerbacteriano.cl',
-    port: 465,
+    host: process.env.HOST,
+    port: process.env.PORT_EMAIL,
     secure: true,
     auth: {
-        user: 'redgenomica@cancerbacteriano.cl',
-        pass: 'inia.2019'
+        user: process.env.EMAIL,
+        pass: process.env.PASS_EMAIL
     },
     tls: {
         rejectUnauthorized: false
