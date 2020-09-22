@@ -8,9 +8,10 @@ import parse from './parse'
 const home = os.homedir()
 const databasesRoot = path.join(home,'databases');
 const prokka = '/opt/biotools/prokka/bin/prokka';
+const dfast = '/opt/biotools/dfast_core/dfast'
 const eggNOG = '/opt/biotools/eggnog-mapper/emapper.py';
 const ssrPrimers = '/opt/biotools/SSRMMD/connectorToPrimer3/connectorToPrimer3.pl'
-const threads = 8
+const threads = 5
 
 
 export default {
@@ -377,6 +378,31 @@ export default {
             }
         })
     
+    },
+
+    /*
+    |--------------------------------------------------------------------------
+    |Dfast
+    |--------------------------------------------------------------------------
+    */
+    dfast: (input, cb) => {
+        let fasta = path.join(__dirname, `../../${input.fasta_file}`)
+        let output = path.join(__dirname, `../../storage/${input.user}/tmp/prokka/${input.name}`);
+        let parametros = ['--genome', fasta, '--organism', input.organism, '--strain', input.strain, '--locus_tag_prefix', input.locustag, '--cpu', threads, '--force', '--out', output]
+        let cmd_dfast = spawn(dfast, parametros);
+        cmd_dfast.stdout.on('data', (data) => {console.log(data.toString())});
+
+        cmd_dfast.on('close', (code) => {
+            console.log(`dfast process exited with code ${code}`);
+            
+            if(code == 0){
+                return cb(null, parametros)
+            }else{
+                return cb('ERROR Dfast', null)
+            }
+        })
+
+        
     },
 
     /*

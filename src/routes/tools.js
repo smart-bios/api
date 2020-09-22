@@ -212,7 +212,6 @@ ruta.post('/trimgalore', async(req, res) => {
 | Unicycle
 |--------------------------------------------------------------------------
 */
-
 ruta.post('/unicycler', async(req, res)=> {
     try {
         tools.unicycler(req.body, function(err, result){
@@ -265,7 +264,6 @@ ruta.post('/unicycler', async(req, res)=> {
         });  
     }
 })
-
 
 /*
 |--------------------------------------------------------------------------
@@ -363,7 +361,6 @@ ruta.post('/busco', async(req, res) => {
 | PROKKA
 |--------------------------------------------------------------------------
 */
-
 ruta.post('/prokka', async(req, res) => {
     tools.prokka(req.body, function(err, result){
 
@@ -396,6 +393,27 @@ ruta.post('/prokka', async(req, res) => {
 
 /*
 |--------------------------------------------------------------------------
+| Dfast
+|--------------------------------------------------------------------------
+*/
+ruta.post('/dfast', async(req, res)=> {
+
+    tools.dfast(req.body, function(err, result){
+        if(err){
+            res.json({ status: 'danger', message: err})
+        }
+        
+        res.json({
+            status: 'success',
+            message: 'Dfast complete',
+            result
+        })
+    })
+
+    
+})
+/*
+|--------------------------------------------------------------------------
 | eggNOG
 |--------------------------------------------------------------------------
 */
@@ -424,8 +442,6 @@ ruta.post('/eggNOG', async(req, res) => {
     })
     
 })
-
-
 
 /*
 |--------------------------------------------------------------------------
@@ -459,7 +475,6 @@ ruta.post('/SSRMMD', async(req, res)=> {
 
     
 })
-
 
 /*
 |--------------------------------------------------------------------------
