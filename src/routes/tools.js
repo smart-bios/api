@@ -235,8 +235,9 @@ ruta.post('/unicycler', async(req, res)=> {
                 transporter.sendMail(msj, function(err, info){
                     if(err){
                         console.log('ERROR:',err)
+                    }else{
+                        console.log('Correo enviado')
                     }
-                    console.log('Correo enviado')
                 })
 
                 storage.insertMany([result.assembly, result.result], function(err, file){

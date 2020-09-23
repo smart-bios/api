@@ -5,6 +5,7 @@ import token from '../services/token';
 import bcrypt from 'bcrypt';
 import path from 'path'
 import fs from 'fs'
+import fsa from 'fs-extra'
 
 const ruta = Router();
 
@@ -20,23 +21,22 @@ ruta.post('/add', auth.verifyAdministrador, async(req, res) => {
     let body = req.body;     
     try {    
         let user_email = await User.findOne({email : req.body.email});
+
         if(!user_email){
 
             body.password = await bcrypt.hash(body.password, 10);
             let new_user = await User.create(body);
             fs.mkdir(path.join(__dirname, `../../storage/${new_user._id}/tmp`), { recursive: true }, (err) => { 
-                if (err) { 
-                    res.status(500).json({
-                        status: 'failed',
-                        message: 'No se pudo registrar el usuario',
-                        err
-                    });
-                }
+                if (err) throw err;
 
-                res.json({
-                    status: 'success',
-                    message: 'Usuario registrado en la base de datos',
-                });                    
+                fs.mkdir(path.join(__dirname, `../../storage/${new_user._id}/results`), { recursive: true }, (err) => {
+                    if (err) throw err;
+
+                    res.json({
+                        status: 'success',
+                        message: 'Usuario registrado en la base de datos',
+                    });                 
+                });                                   
             });
         }else{
             res.json({
@@ -134,5 +134,25 @@ ruta.delete('/delete/:id', auth.verifyAdministrador, async(req, res) => {
         })
     }    
 });
+
+/*
+|--------------------------------------------------------------------------
+| Clear tmp files
+|--------------------------------------------------------------------------
+*/
+ruta.post('/clean', async(req, res) => {
+
+    let tmp = path.join(__dirname, `../../storage/${req.body.user}/tmp`)
+
+    fsa.emptyDir(tmp,  function(err){
+        
+        if (err) return console.error(err)
+        
+        res.json({
+            message: 'removed temp files'
+        })
+      })
+})
+
 
 export default ruta
