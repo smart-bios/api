@@ -6,6 +6,7 @@ import bcrypt from 'bcrypt';
 import path from 'path'
 import fs from 'fs'
 import fsa from 'fs-extra'
+import _ from 'underscore';
 
 const ruta = Router();
 
@@ -16,8 +17,6 @@ const ruta = Router();
 |--------------------------------------------------------------------------
 */
 ruta.post('/add', auth.verifyAdministrador, async(req, res) => {
-//ruta.post('/add', async(req, res) => {
-
     let body = req.body;     
     try {    
         let user_email = await User.findOne({email : req.body.email});
@@ -34,19 +33,19 @@ ruta.post('/add', auth.verifyAdministrador, async(req, res) => {
 
                     res.json({
                         status: 'success',
-                        message: 'Usuario registrado en la base de datos',
+                        message: 'Usuario registrado',
                     });                 
                 });                                   
             });
         }else{
             res.json({
-                status: 'failed',
-                message: 'El email ya esta registrado en la base de datos'
+                status: 'error',
+                message: 'El email ya esta registrado'
             });
         }
     } catch (error) {
         res.status(500).json({
-            status: 'failed',
+            status: 'error',
             message: 'No se a podido registrar el usuario',
             error
         });
@@ -98,7 +97,33 @@ ruta.post('/login', async(req, res) => {
         })
         
     }
-})
+});
+
+/*
+|--------------------------------------------------------------------------
+| Update user
+|--------------------------------------------------------------------------
+*/
+ruta.put('/update/:id', auth.verifyAdministrador, async(req, res)=>{
+    const id = req.params.id;
+    const body = _.pick(req.body,['username','email','role','state']); //los campos que se pueden actualizar        
+    try {
+        let usuario = await User.findByIdAndUpdate(id, body, {new: true, runValidators: true});
+        res.json({
+            status: 'success',
+            message: 'usuario actualizado',
+            usuario
+        })
+
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: 'No updated',
+            error
+        })            
+    }
+});
+
 
 /*
 |--------------------------------------------------------------------------
@@ -115,20 +140,19 @@ ruta.delete('/delete/:id', auth.verifyAdministrador, async(req, res) => {
         fs.rmdir(path.join(__dirname, '../../storage/'+user._id), {recursive: true}, (error) => { 
             if (error) { 
                 res.status(500).json({
-                    status: 'failed',
+                    status: 'error',
                     message: 'No se puede eliminar al ususario',
-                    error
                 })
             } 
             res.json({
                 status: 'success',
-                messague: 'usuario eliminado',
+                message: 'Usuario eliminado',
             })
         });
 
     } catch (error) {
         res.status(500).json({
-            status: 'failed',
+            status: 'error',
             message: 'No se puede eliminar al ususario',
             error
         })
@@ -153,6 +177,33 @@ ruta.post('/clean', async(req, res) => {
         })
       })
 })
+
+/*
+|--------------------------------------------------------------------------
+| List all users
+|--------------------------------------------------------------------------
+*/
+
+ruta.get('/list', auth.verifyAdministrador, async(req, res) => {
+    try {
+        let users = await User.find({},{password:0,updatedAt:0});
+        let cantidad = await User.countDocuments({}); 
+        
+        res.json({
+            status: 'success',
+            users,
+            cantidad
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            status: 'failed',
+            message: 'No se a podido listar los usuarios',
+            error
+        });
+        
+    }
+});
 
 
 export default ruta
