@@ -141,6 +141,27 @@ ruta.post('/fastp', async(req, res) => {
     })
     
 })
+/*
+|--------------------------------------------------------------------------
+| BBDuk
+|--------------------------------------------------------------------------
+*/
+ruta.post('/bbduk', async(req, res) => {
+    
+    tools.bbduk(req.body, function(err, result){
+        if(err){
+            res.json({status: 'danger', message: err})
+        }else{
+            res.json({
+                status: 'success',
+                message: 'BBDuk complete',
+                result
+            })
+        }
+    })
+    
+})
+
 
 /*
 |--------------------------------------------------------------------------

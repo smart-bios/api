@@ -7,6 +7,7 @@ import parse from './parse'
 
 const home = os.homedir()
 const databasesRoot = path.join(home,'databases');
+const bbduk  = '/opt/biotools/bbmap/bbduk.sh'
 const prokka = '/opt/biotools/prokka/bin/prokka';
 const dfast = '/opt/biotools/dfast_core/dfast'
 const eggNOG = '/opt/biotools/eggnog-mapper/emapper.py';
@@ -129,6 +130,45 @@ export default {
            }
        })      
    },
+
+    /*
+    |--------------------------------------------------------------------------
+    | BBDuk
+    |--------------------------------------------------------------------------
+    */
+    bbduk: (input, cb) =>{
+        let fq1 = path.join(__dirname, `../../${input.fq1}`)
+        let fq2 = path.join(__dirname, `../../${input.fq2}`)
+        let output = path.join(__dirname, `../../storage/${input.user}/result/`);
+        let parametros = [  `in1=${fq1}`, 
+                            `in2=${fq2}`,
+                            `in1=${fq1}`, 
+                            `out1=${output}${input.name}_R1_good.fq.gz`, 
+                            `out2=${output}${input.name}_R2_good.fq.gz`, 
+                            'ref=/opt/biotools/bbmap/resources/adapters.fa', 
+                            `qtrim=${input.quality}`, 
+                            `minlen=${input.length}`, 
+                            `ftl=${input.ftl}`]
+        
+        let cmd_bbduk = spawn(bbduk, parametros)
+        
+        //cmd_bbduk.stdout.on('data', (data) => {console.log(data.toString())});
+        let log = ''
+        cmd_bbduk.stderr.on('data', (data) => {
+            log += data.toString()
+            console.log(data.toString())
+        });
+
+        cmd_bbduk.on('close', (code) => {
+            console.log(`BBDUK process exited with code ${code}`);
+            if(code == 0){
+                return cb(null, log)
+            }else{
+                return cb('ERROR BBDuk', null)
+            }
+        })
+        
+    },
 
     /*
     |--------------------------------------------------------------------------
