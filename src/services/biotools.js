@@ -139,7 +139,7 @@ export default {
     bbduk: (input, cb) =>{
         let fq1 = path.join(__dirname, `../../${input.fq1}`)
         let fq2 = path.join(__dirname, `../../${input.fq2}`)
-        let output = path.join(__dirname, `../../storage/${input.user}/result/`);
+        let output = path.join(__dirname, `../../storage/${input.user}/results/`);
         let parametros = [  `in1=${fq1}`, 
                             `in2=${fq2}`,
                             `in1=${fq1}`, 
@@ -151,8 +151,6 @@ export default {
                             `ftl=${input.ftl}`]
         
         let cmd_bbduk = spawn(bbduk, parametros)
-        
-        //cmd_bbduk.stdout.on('data', (data) => {console.log(data.toString())});
         let log = ''
         cmd_bbduk.stderr.on('data', (data) => {
             log += data.toString()
@@ -162,7 +160,28 @@ export default {
         cmd_bbduk.on('close', (code) => {
             console.log(`BBDUK process exited with code ${code}`);
             if(code == 0){
-                return cb(null, log)
+
+                
+                let trim1 = {
+                    user: input.user,
+                    filename: `${input.name}_R1_good.fq.gz`,
+                    description: `BBDuk result`,
+                    path: `storage/${input.user}/results/${input.name}_R1_good.fq.gz`,
+                    category: 'fastq',
+                    type: 'result'               
+                }
+
+                let trim2 = {
+                    user: input.user,
+                    filename: `${input.name}_R2_good.fq.gz`,
+                    description: `BBDuk result`,
+                    path: `storage/${input.user}/results/${input.name}_R2_good.fq.gz`,
+                    category: 'fastq',
+                    type: 'result'               
+                }
+
+                return cb(null, {trim1, trim2, log})
+
             }else{
                 return cb('ERROR BBDuk', null)
             }
@@ -208,7 +227,8 @@ export default {
                     description: 'Trin Galore result',
                     path: `storage/${input.user}/results/${input.name}_val_1.fq.gz`,
                     category: 'fastq',
-                    type: 'result'                }
+                    type: 'result'               
+                }
 
                 if(input.paired){
 

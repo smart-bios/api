@@ -152,11 +152,22 @@ ruta.post('/bbduk', async(req, res) => {
         if(err){
             res.json({status: 'danger', message: err})
         }else{
-            res.json({
-                status: 'success',
-                message: 'BBDuk complete',
-                result
+            storage.insertMany([result.trim1, result.trim2], function(err, data){
+                if(err){
+                    res.json({status: 'danger', message: err})
+                }
+
+                res.json({
+                    status: 'success',
+                    message: 'BBDuk complete',
+                    result: {
+                        trim1: data[0]._id,
+                        trim2: data[1]._id,
+                        log: result.log
+                    }
+                })
             })
+            
         }
     })
     
