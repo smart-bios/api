@@ -5,31 +5,32 @@ import storage from '../models/storage';
 import csv from 'csv-parser';
 import fs from 'fs';
 import nodemailer from 'nodemailer'
+import email from '../services/email'
 
 
 
 const ruta = Router();
 
-const transporter = nodemailer.createTransport({
-    host: process.env.HOST,
-    port: process.env.PORT_EMAIL,
+/* const transporter = nodemailer.createTransport({
+    pool: true,
+    host: 'mail.cancerbacteriano.cl',
+    port: 465,
     secure: true,
     auth: {
-        user: process.env.EMAIL,
-        pass: process.env.PASS_EMAIL
+        user: 'redgenomica@cancerbacteriano.cl',
+        pass: 'inia.2019'
     },
     tls: {
         rejectUnauthorized: false
 
     }
-})
+}) */
 
 /*
 |--------------------------------------------------------------------------
 | blast
 |--------------------------------------------------------------------------
 */
-
 ruta.post('/blast', (req, res) =>{
 
     let params = {
@@ -63,7 +64,6 @@ ruta.post('/blast', (req, res) =>{
 | In silico PCR
 |--------------------------------------------------------------------------
 */
-
 ruta.post('/in_silico_pcr', (req, res) => {
 
     let params = {
@@ -141,6 +141,7 @@ ruta.post('/fastp', async(req, res) => {
     })
     
 })
+
 /*
 |--------------------------------------------------------------------------
 | BBDuk
@@ -248,28 +249,20 @@ ruta.post('/unicycler', async(req, res)=> {
     try {
         tools.unicycler(req.body, function(err, result){
             if(err){
-                res.json({ status: 'danger',message: err})
+                res.json({ status: 'danger', message: err})
             }else{
-
-
-               let msj = {
-                    from: "'Red Genomica INIA'",
-                    to: req.body.user.email,
-                    subject: 'Resultados ensamble UNICYCLE',
-                    text: 'prueba de correo',
-                    attachments: [
-                        {
-                            path: result.file
-                        }
-                    ]
+                
+                let msj = {
+                    to: req.body.user.email, 
+                    subject: 'Resultados ensamble UNICYCLE', 
+                    text: 'prueba de correo, adjuntando resultados de ensamble con UNICYCLE', 
+                    attachments: result.file
                 }
-            
-                transporter.sendMail(msj, function(err, info){
-                    if(err){
-                        console.log('ERROR:',err)
-                    }else{
-                        console.log('Correo enviado')
-                    }
+
+                email.sendEmail(msj, function(err, info){
+                    if(err) console.log(err)
+                    
+                    console.log(info)
                 })
 
                 storage.insertMany([result.assembly, result.result], function(err, file){
@@ -312,6 +305,17 @@ ruta.post('/quast', async(req, res) => {
         }else{
             let quast_report = []
             let unaligned_report = []
+            let msj = {
+                to: req.body.user.email, 
+                subject: 'Resultados QUAST', 
+                text: 'prueba de correo, adjuntando resultados de QUAST', 
+                attachments: result.file
+            }
+
+            email.sendEmail(msj, function(err, info){
+                if(err) console.log(err)
+                console.log(info)
+            })
             
             storage.create(result.result, function(err, file){
                 if(err){
@@ -359,12 +363,23 @@ ruta.post('/quast', async(req, res) => {
 |--------------------------------------------------------------------------
 */
 ruta.post('/busco', async(req, res) => {
-    console.log(req.body)
 
     tools.busco(req.body, function(err, result){
         if(err){
             res.json({ status: 'danger', message: err})
         }else{
+
+            let msj = {
+                to: req.body.user.email, 
+                subject: 'Resultados análisis BUSCO', 
+                text: 'prueba de correo, adjuntando resultados de BUSCO', 
+                attachments: result.file
+            }
+
+            email.sendEmail(msj, function(err, info){
+                if(err) console.log(err)              
+                console.log(info)
+            })
             storage.create(result.result, function(err, file){
                 if(err){
                     res.json({ status: 'danger', message: err})
@@ -400,6 +415,20 @@ ruta.post('/prokka', async(req, res) => {
         if(err){
             res.json({ status: 'danger', message: err})
         }else{
+
+            let msj = {
+                to: req.body.user.email, 
+                subject: 'Resultados PROKKA', 
+                text: 'prueba de correo, adjuntando resultados de PROKKA', 
+                attachments: result.file
+            }
+
+            email.sendEmail(msj, function(err, info){
+                if(err) console.log(err)
+                
+                console.log(info)
+            })
+
             storage.create(result.result, function(err, file){
                 if(err){
                     res.json({
@@ -435,6 +464,20 @@ ruta.post('/dfast', async(req, res)=> {
         if(err){
             res.json({ status: 'danger', message: err})
         }else{
+
+            let msj = {
+                to: req.body.user.email, 
+                subject: 'Resultados Dfast', 
+                text: 'prueba de correo, adjuntando resultados Dfast', 
+                attachments: result.file
+            }
+
+            email.sendEmail(msj, function(err, info){
+                if(err) console.log(err)
+                
+                console.log(info)
+            })
+
             storage.create(result.result, function(err, file){
                 if(err){
                     res.json({
@@ -457,6 +500,7 @@ ruta.post('/dfast', async(req, res)=> {
         }
     })
 })
+
 /*
 |--------------------------------------------------------------------------
 | eggNOG

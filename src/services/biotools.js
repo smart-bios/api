@@ -268,7 +268,6 @@ export default {
     |--------------------------------------------------------------------------
     */
     unicycler: (input, cb) =>{
-        console.log(input)
         let fq1 =  path.join(__dirname, `../../${input.fq1}`)
         let fq2 =  path.join(__dirname, `../../${input.fq2}`)
         let length = input.length_fasta
@@ -291,13 +290,11 @@ export default {
                     // Mover archivo comprimido a la carpera results
                     fs.rename(`${output}.zip`, `${move}.zip` , (err) => {
                         if (err) throw err;
-                        console.log('Rename complete!');
                     });
 
                     fs.rename(path.join(__dirname, `../../storage/${input.user.id}/tmp/${input.name}/assembly.fasta`)
                     , path.join(__dirname, `../../storage/${input.user.id}/results/${input.name}_assembly.fasta`) , (err) => {
                         if (err) throw err;
-                        console.log('Rename complete!');
                     });
 
                     // Modelo de los resultados para guardar en base de datos.
@@ -338,7 +335,7 @@ export default {
     */
     quast: (input, cb) => {
         let assembly = path.join(__dirname, `../../${input.assembly}`)
-        let output = path.join(__dirname, `../../storage/${input.user}/tmp/${input.name}`);
+        let output = path.join(__dirname, `../../storage/${input.user.id}/tmp/${input.name}`);
         let parametros = ['-m', input.length, '--contig-thresholds', input.thresholds, '-t', process.env.THREADS, '-o', output, '--no-html','--no-icarus', '--plots-format', 'png']
 
         if(input.compare){
@@ -359,7 +356,7 @@ export default {
                 compress.zipFolder(output, `${output}.zip`, function(err){
                     if(err){return cb('Error comprimir archivo', null)}
 
-                    let move = path.join(__dirname, `../../storage/${input.user}/results/${input.name}`)
+                    let move = path.join(__dirname, `../../storage/${input.user.id}/results/${input.name}`)
 
                     fs.rename(`${output}.zip`, `${move}.zip` , (err) => {
                         if (err) throw err;
@@ -367,9 +364,9 @@ export default {
                     });
 
                     let result = {
-                        user: `${input.user}`,
+                        user: `${input.user.id}`,
                         filename: `${input.name}.zip`,
-                        path: `storage/${input.user}/results/${input.name}.zip`,
+                        path: `storage/${input.user.id}/results/${input.name}.zip`,
                         description: 'Quast result',
                         type: 'result'
                     }
@@ -378,13 +375,15 @@ export default {
                         return cb(null, {
                             result,
                             report: `${output}/report.tsv`,
-                            unaligned: `${output}/contigs_reports/unaligned_report.tsv`
+                            unaligned: `${output}/contigs_reports/unaligned_report.tsv`,
+                            file: `${move}.zip`
                         })
                     }else{
                         return cb(null, {
                             result,
                             report: `${output}/report.tsv`,
-                            unaligned: null
+                            unaligned: null,
+                            file: `${move}.zip`
                         })
                     }
                       
@@ -404,7 +403,7 @@ export default {
     busco: (input, cb) => {
         let fasta = path.join(__dirname, `../../${input.fasta}`) 
         let lineage = path.join(databasesRoot, `/busco/${input.lineage}`)
-        let output = path.join(__dirname, `../../storage/${input.user}/tmp/`);
+        let output = path.join(__dirname, `../../storage/${input.user.id}/tmp/`);
         let config = '/opt/biotools/busco/config/config.ini'
         let parametros = ['-i', fasta, '-o', input.name, '--out_path', output, '-l', lineage, '-m', input.mode, '-c', process.env.THREADS, '--config', config, '--offline', '-f']
 
@@ -417,7 +416,7 @@ export default {
             if(code == 0){
                 compress.zipFolder(`${output}/${input.name}`,`${output}/${input.name}.zip`, function(err){
 
-                    let move = path.join(__dirname, `../../storage/${input.user}/results/${input.name}`)
+                    let move = path.join(__dirname, `../../storage/${input.user.id}/results/${input.name}`)
 
                     fs.rename(`${output}/${input.name}.zip`, `${move}.zip` , (err) => {
                         if (err) throw err;
@@ -425,16 +424,17 @@ export default {
                     });
                     
                     let result = {
-                        user: `${input.user}`,
+                        user: `${input.user.id}`,
                         filename: `${input.name}.zip`,
-                        path: `storage/${input.user}/results/${input.name}.zip`,
+                        path: `storage/${input.user.id}/results/${input.name}.zip`,
                         description: 'BUSCO result',
                         type: 'result'
                     }
 
                     return cb(null, {
                         result,
-                        report: `${output}/${input.name}/short_summary.specific.${input.lineage}.${input.name}.txt`
+                        report: `${output}/${input.name}/short_summary.specific.${input.lineage}.${input.name}.txt`,
+                        file: `${move}.zip`
                     })
                 })
                 
@@ -451,7 +451,7 @@ export default {
     */
     prokka: (input, cb) =>{
         let fasta = path.join(__dirname, `../../${input.fasta_file}`)
-        let output = path.join(__dirname, `../../storage/${input.user}/tmp/${input.name}`);
+        let output = path.join(__dirname, `../../storage/${input.user.id}/tmp/${input.name}`);
         let parametros = ['-outdir', output, '--prefix', input.name, '--locustag', input.locustag, '--kingdom', input.kingdom, '--genus', input.genus, '--species', input.species, '--strain', input.strain, '--plasmid', input.plasmid, '--cpus', process.env.THREADS,'--force', fasta ] 
         let cmd_pokka = spawn(prokka, parametros);
         cmd_pokka.stderr.on('data', (data) => {console.log(data.toString())});
@@ -464,7 +464,7 @@ export default {
                         return cb(err, null)
                     }
 
-                    let move = path.join(__dirname, `../../storage/${input.user}/results/${input.name}`)
+                    let move = path.join(__dirname, `../../storage/${input.user.id}/results/${input.name}`)
 
                     fs.rename(`${output}.zip`, `${move}.zip` , (err) => {
                         if (err) throw err;
@@ -472,16 +472,17 @@ export default {
                     });
     
                     let result = {
-                        user: `${input.user}`,
+                        user: `${input.user.id}`,
                         filename: `${input.name}.zip`,
-                        path: `storage/${input.user}/results/${input.name}.zip`,
+                        path: `storage/${input.user.id}/results/${input.name}.zip`,
                         description: 'Prokka result',
                         type: 'result'
                     }
                     
                     return cb(null,{
                         result,
-                        report: `${output}/${input.name}.txt`
+                        report: `${output}/${input.name}.txt`,
+                        file: `${move}.zip`
                     })
                 })
             }else{
@@ -498,7 +499,7 @@ export default {
     */
     dfast: (input, cb) => {
         let fasta = path.join(__dirname, `../../${input.fasta_file}`)
-        let output = path.join(__dirname, `../../storage/${input.user}/tmp/${input.name}`);
+        let output = path.join(__dirname, `../../storage/${input.user.id}/tmp/${input.name}`);
         let parametros = ['--genome', fasta, '--organism', input.organism, '--strain', input.strain, '--locus_tag_prefix', input.locustag, '--cpu', process.env.THREADS, '--force', '--out', output]
         let cmd_dfast = spawn(dfast, parametros);
         cmd_dfast.stdout.on('data', (data) => {console.log(data.toString())});
@@ -512,7 +513,7 @@ export default {
                         return cb(err, null)
                     }
 
-                    let move = path.join(__dirname, `../../storage/${input.user}/results/${input.name}`)
+                    let move = path.join(__dirname, `../../storage/${input.user.id}/results/${input.name}`)
 
                     fs.rename(`${output}.zip`, `${move}.zip` , (err) => {
                         if (err) throw err;
@@ -520,16 +521,17 @@ export default {
                     });
     
                     let result = {
-                        user: `${input.user}`,
+                        user: `${input.user.id}`,
                         filename: `${input.name}.zip`,
-                        path: `storage/${input.user}/results/${input.name}.zip`,
+                        path: `storage/${input.user.id}/results/${input.name}.zip`,
                         description: 'Dfast result',
                         type: 'result'
                     }
                     
                     return cb(null,{
                         result,
-                        report: `${output}/statistics.txt`
+                        report: `${output}/statistics.txt`,
+                        file: `${move}.zip`
                     })
                 })
             }else{
