@@ -23,16 +23,14 @@ ruta.get('/search/:text', async(req,res)=> {
         if(resultados.length > 0){
             res.json({
                 resultados,
-                cantidad: resultados.length,
                 status: "success",
-                message: `${text} encontrado`
+                message: `${resultados.length} items found`
             });
         }else{
             res.json({
                 resultados,
-                cantidad: resultados.length,
-                status: "success",
-                message: `No se encontro ${text}`
+                status: "danger",
+                message: `No item was found`
             });
         }
     } catch (error) {

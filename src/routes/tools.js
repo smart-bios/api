@@ -4,7 +4,6 @@ import tools from '../services/biotools';
 import storage from '../models/storage';
 import csv from 'csv-parser';
 import fs from 'fs';
-import nodemailer from 'nodemailer'
 import email from '../services/email'
 
 
@@ -90,6 +89,76 @@ ruta.post('/in_silico_pcr', (req, res) => {
             error
         });    
     }
+});
+
+ruta.post('/ssr', (req, res)=>{
+    
+    if(req.files){
+        let sampleFile = req.files.file;
+        let path_file = `/tmp/${sampleFile.name}` 
+
+        sampleFile.mv(path_file, function(err) {
+            if (err) return res.json({err});
+
+            let input = {
+                name : path_file,
+                mono: req.body.mono,
+                di: req.body.di,
+                tri: req.body.tri,
+                tetra: req.body.tetra,
+                penta: req.body.penta,
+                hexa: req.body.hexa,
+                hepta: req.body.hepta
+            }
+
+            tools.perf(input, function(err, result){
+                if(err){
+                    res.json({ status: 'danger', message: err})
+                }else{
+                    let report = []
+                    let headers = ['Chromosome','Repeat Start','Repeat Stop', 'Repeat Class', 'Repeat Length', 'Repeat Strand', 'Motif Number', 'Actual Repeat']
+                    fs.createReadStream(result.tsv)
+                    .pipe(csv({ separator: '\t', headers }))
+                    .on('data', (data) => report.push(data))
+                    .on('end', () => {
+                        res.json({
+                            status: 'success',
+                            message: 'PERF complete',
+                            report,
+                            tsv: result.tsv,
+                            html: result.html
+                        })
+                    });
+            }
+            })
+        });
+    }else{
+        
+        tools.perf(req.body, function(err, result){
+            let report = []
+            let headers = ['Chromosome','Repeat Start','Repeat Stop', 'Repeat Class', 'Repeat Length', 'Repeat Strand', 'Motif Number', 'Actual Repeat']
+
+            if(err){
+                res.json({status: 'danger', message: err})
+            }else{
+                fs.createReadStream(result.tsv)
+                .pipe(csv({ separator: '\t', headers }))
+                .on('data', (data) => report.push(data))
+                .on('end', () => {
+                    res.json({
+                        status: 'success',
+                        message: 'PERF complete',
+                        report,
+                        tsv: result.tsv,
+                        html: result.html
+                    })
+                });
+            }
+        })
+        
+    }
+    
+    
 });
 
 /*

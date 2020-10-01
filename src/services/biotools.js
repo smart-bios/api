@@ -582,7 +582,7 @@ export default {
     |PERF
     |--------------------------------------------------------------------------
     */
-    perf: (input, cb) =>{
+   /*  perf: (input, cb) =>{
         let fasta =  path.join(__dirname, `../../${input.fasta}`)
         let minimum = input.minimum
         let maximum = input.maximum
@@ -607,7 +607,58 @@ export default {
             }
             
         })
+    }, */
+    perf: (input, cb) =>{
+        if(input.seq){
+            let  file = Date.now()
+            fs.writeFile(`/tmp/${file}.fna`, input.seq, function(err){
+                if(err) {return console.log(err);}
+                fs.writeFile(`/tmp/${file}`, `1\t${input.mono}\n2\t${input.di}\n3\t${input.tri}\n4\t${input.tetra}\n5\t${input.penta}\n6\t${input.hexa}`, function(err) {
+                    if(err) {return console.log(err);}
+                    
+                    let cmd_perf = spawn('PERF', ['-i', `/tmp/${file}.fna`, '-u', `/tmp/${file}`,'-a' ,'-t', 4])
+                    cmd_perf.stdout.on('data', (data) => {console.log(data.toString())});
+                
+                    cmd_perf.on('close', (code)=> {
+                        console.log(`PERF process exited with code ${code}`);
+                        if(code == 0){
+                            
+                            return cb(null, {
+                                html: `/tmp/${file}_perf.html`,
+                                tsv: `/tmp/${file}_perf.tsv`,
+                            })
 
+                        }else{
+                            return cb('ERROR PERF', null)
+                        }
+                        
+                    })
+                });  
+            })
+
+        }else{
+            let  file = Date.now()
+            fs.writeFile(`/tmp/${file}`, `1\t${input.mono}\n2\t${input.di}\n3\t${input.tri}\n4\t${input.tetra}\n5\t${input.penta}\n6\t${input.hexa}`, function(err) {
+                if(err) {return console.log(err);}
+                
+                let file_name = path.basename(input.name).split('.');
+                let cmd_perf = spawn('PERF', ['-i', input.name, '-u', `/tmp/${file}`,'-a' ,'-t', 4])
+                cmd_perf.stdout.on('data', (data) => {console.log(data.toString())});
+            
+                cmd_perf.on('close', (code)=> {
+                    console.log(`PERF process exited with code ${code}`);
+                    if(code == 0){
+                        return cb(null, {
+                            html: `/tmp/${file_name[0]}_perf.html`,
+                            tsv: `/tmp/${file_name[0]}_perf.tsv`,
+                        })
+                    }else{
+                        return cb('ERROR PERF', null)
+                    }
+                    
+                })
+            });
+        }
     },
 
     /*

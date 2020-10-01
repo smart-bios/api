@@ -182,4 +182,26 @@ ruta.post('/download', (req, res) => {
     }); 
 })
 
+ruta.post('/download_tmp', (req, res) => {
+
+
+    console.log(req.body.report)
+
+    let basename = path.basename(req.body.report)
+    res.setHeader('Content-type', 'application/zip');
+    res.header("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.header("Pragma", "no-cache");
+    res.header("Expires", 0);
+
+    res.download(req.body.report, basename, (err)=>{
+        if(err){
+            res.status(406).json({
+                status: 'failed',
+                err
+            });
+        }
+        console.log('Your file has been downloaded!')
+    }); 
+})
+
 export default ruta
