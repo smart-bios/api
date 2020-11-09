@@ -142,7 +142,6 @@ export default {
         let output = path.join(__dirname, `../../storage/${input.user}/results/`);
         let parametros = [  `in1=${fq1}`, 
                             `in2=${fq2}`,
-                            `in1=${fq1}`, 
                             `out1=${output}${input.name}_R1_good.fq.gz`, 
                             `out2=${output}${input.name}_R2_good.fq.gz`, 
                             'ref=/opt/biotools/bbmap/resources/adapters.fa', 

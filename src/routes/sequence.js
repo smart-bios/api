@@ -1,6 +1,7 @@
 import {Router} from 'express'
 import Prot from '../models/protein'
 import Nucl from '../models/nucleotide'
+import SeqKit from '../services/seqkit';
 const ruta = Router()
 
 /*
@@ -83,6 +84,107 @@ ruta.get('/nucl/:id', async(req,res)=>{
             error
         })
     }    
+})
+
+ruta.post('/none', async(req, res) => {
+    console.log('None');
+    try {
+        SeqKit.none(req.body, function(err, result){
+            if(err) return res.json({error: err});
+
+            res.json({
+                status: "success",
+                sequence: result
+            });
+        })
+    } catch (error) {
+        res.status(500).json({
+            status: "failed",
+            message: `Error`,
+            error
+        })
+    }
+
+})
+
+ruta.post('/remove-gaps', async(req, res) => {
+    console.log('Remove no coding characters');
+    try {
+        SeqKit.remove_gaps(req.body, function(err, result){
+            if(err) return res.json({error: err});
+            res.json({
+                status: "success",
+                sequence: result
+            });
+        })
+        
+    } catch (error) {
+        res.status(500).json({
+            status: "failed",
+            message: `Error`,
+            error
+        })
+    }
+})
+ruta.post('/reverse', async(req, res) => {
+    console.log('Reverse sequence.');
+    try {
+        SeqKit.reverse(req.body, function(err, result){
+            if(err) return res.json({error: err});
+            res.json({
+                status: "success",
+                sequence: result
+            });
+        })
+        
+    } catch (error) {
+        res.status(500).json({
+            status: "failed",
+            message: `Error`,
+            error
+        })
+    }
+    
+})
+ruta.post('/complement', async(req, res) => {
+    console.log('Complement sequence.');
+    try {
+        SeqKit.complement(req.body, function(err, result){
+            if(err) return res.json({error: err});
+            res.json({
+                status: "success",
+                sequence: result
+            });
+        })
+        
+    } catch (error) {
+        res.status(500).json({
+            status: "failed",
+            message: `Error`,
+            error
+        })
+    }
+    
+})
+ruta.post('/reverse-complement', async(req, res) => {
+    console.log('Reverse and Complement sequence');
+    try {
+        SeqKit.reverse_complement(req.body, function(err, result){
+            if(err) return res.json({error: err});
+            res.json({
+                status: "success",
+                sequence: result
+            });
+        })
+        
+    } catch (error) {
+        res.status(500).json({
+            status: "failed",
+            message: `Error`,
+            error
+        })
+    }
+    
 })
 
 export default ruta
